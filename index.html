@@ -12,42 +12,36 @@ header{
 display:flex;align-items:center;
 padding:12px;background:white;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
-position:sticky;top:0;z-index:10
+position:sticky;top:0
 }
 
-.menu{font-size:22px;cursor:pointer;margin-right:10px}
+.menu{font-size:22px;margin-right:10px;cursor:pointer}
 .title{flex:1;text-align:center;font-weight:bold}
 .login{background:#16a34a;color:white;padding:6px 14px;border-radius:20px}
 
 /* SIDEBAR */
 .sidebar{
-position:fixed;left:-260px;top:0;
-width:260px;height:100%;
-background:white;transition:.3s;
-z-index:20;
-box-shadow:2px 0 10px rgba(0,0,0,0.2)
+position:fixed;left:-260px;top:0;width:260px;height:100%;
+background:white;transition:.3s;z-index:20
 }
 .sidebar.active{left:0}
 .sidebar h3{padding:20px;margin:0;background:#16a34a;color:white}
-.sidebar div{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
+.sidebar div{padding:15px;border-bottom:1px solid #eee}
 
 .overlay{
 position:fixed;width:100%;height:100%;
 background:rgba(0,0,0,0.4);
-display:none;z-index:15;
+display:none;z-index:10
 }
 
 /* PAGE */
 .page{display:none}
 .active{display:block}
 
-/* CARD */
+/* ITEM */
 .card{
-display:flex;
-justify-content:space-between;
-background:white;
-margin:10px;
-padding:12px;
+display:flex;justify-content:space-between;
+background:white;margin:10px;padding:12px;
 border-radius:14px;
 box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
@@ -55,7 +49,6 @@ box-shadow:0 2px 8px rgba(0,0,0,0.08);
 .left{width:60%}
 .name{font-weight:bold}
 .price{color:#16a34a}
-.desc{font-size:12px;color:#666}
 
 .right{width:35%;position:relative;text-align:center}
 .right img{
@@ -63,59 +56,47 @@ width:100%;height:110px;
 object-fit:cover;border-radius:10px;
 }
 
-/* BUTTON */
 .add-btn{
-position:absolute;
-bottom:-10px;
-left:50%;
+position:absolute;bottom:-10px;left:50%;
 transform:translateX(-50%);
-background:white;
-border:1px solid #16a34a;
-color:#16a34a;
-padding:4px 16px;
-border-radius:10px;
-font-weight:bold;
+background:white;border:1px solid #16a34a;
+color:#16a34a;padding:4px 16px;border-radius:10px;
 }
 
-/* QTY */
 .qty{
-position:absolute;
-bottom:-10px;
-left:50%;
+position:absolute;bottom:-10px;left:50%;
 transform:translateX(-50%);
-display:flex;
-gap:10px;
-background:#16a34a;
-color:white;
-padding:4px 10px;
-border-radius:10px;
+display:flex;gap:10px;
+background:#16a34a;color:white;
+padding:4px 10px;border-radius:10px;
 }
 
 .qty button{background:none;border:none;color:white}
 
 /* CART BAR */
 .cart{
-position:fixed;
-bottom:15px;
-left:50%;
+position:fixed;bottom:15px;left:50%;
 transform:translateX(-50%);
-background:#16a34a;
-color:white;
-padding:12px 20px;
-border-radius:25px;
-cursor:pointer;
+background:#16a34a;color:white;
+padding:12px 20px;border-radius:25px;
 }
 
-/* ORDERS */
+/* ORDER */
 .order{
-background:white;
-margin:10px;
-padding:10px;
-border-radius:10px;
+background:white;margin:10px;padding:10px;border-radius:10px
 }
-.track{background:black;color:white;padding:5px 10px;border-radius:6px}
 
-#map{height:300px;margin:10px;border-radius:10px}
+/* INPUT */
+input,select{
+width:100%;padding:10px;margin-bottom:10px;
+border-radius:8px;border:1px solid #ccc
+}
+
+button.primary{
+width:100%;padding:12px;
+background:#16a34a;color:white;
+border:none;border-radius:10px
+}
 </style>
 </head>
 
@@ -142,11 +123,26 @@ border-radius:10px;
 <div id="menu"></div>
 </div>
 
-<!-- CART PAGE -->
+<!-- CART -->
 <div id="cartPage" class="page">
 <h3 style="padding:10px">Cart</h3>
+
 <div id="cartItems"></div>
-<button onclick="placeOrder()">Place Order</button>
+
+<div style="padding:10px">
+<b>Total: ₹<span id="totalAmount">0</span></b>
+
+<input id="address" placeholder="Enter address">
+
+<button onclick="getLocation()">📍 Use My Location</button>
+
+<select id="payment">
+<option value="COD">Cash on Delivery</option>
+<option value="ONLINE">Pay Online</option>
+</select>
+
+<button class="primary" onclick="placeOrder()">Place Order</button>
+</div>
 </div>
 
 <!-- ORDERS -->
@@ -155,19 +151,14 @@ border-radius:10px;
 <div id="orderList"></div>
 </div>
 
-<!-- TRACK -->
-<div id="trackPage" class="page">
-<div id="map"></div>
-</div>
-
 <div id="cartBar" class="cart">0 items</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, where, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
+const firebaseConfig={
 apiKey:"AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
 authDomain:"chicken-delivery-app-9e4f6.firebaseapp.com",
 projectId:"chicken-delivery-app-9e4f6"
@@ -178,7 +169,7 @@ const auth=getAuth(app);
 const db=getFirestore(app);
 const provider=new GoogleAuthProvider();
 
-/* MENU TOGGLE */
+/* MENU */
 window.openMenu=()=>{sidebar.classList.add("active");overlay.style.display="block";}
 window.closeMenu=()=>{sidebar.classList.remove("active");overlay.style.display="none";}
 
@@ -190,10 +181,7 @@ closeMenu();
 };
 
 /* LOGIN */
-authBtn.onclick=()=>{
-auth.currentUser?signOut(auth):signInWithPopup(auth,provider);
-};
-
+authBtn.onclick=()=>auth.currentUser?signOut(auth):signInWithPopup(auth,provider);
 window.logout=()=>signOut(auth);
 
 onAuthStateChanged(auth,user=>{
@@ -203,7 +191,6 @@ userName.innerText=user.displayName;
 loadOrders(user.uid);
 }else{
 authBtn.innerText="Login";
-userName.innerText="Guest";
 }
 });
 
@@ -219,8 +206,9 @@ render();
 window.inc=(id)=>{cart[id].qty++;render();}
 window.dec=(id)=>{cart[id].qty--;if(cart[id].qty<=0) delete cart[id];render();}
 
-/* RENDER */
 function render(){
+let total=0,count=0;
+
 document.querySelectorAll(".card").forEach(el=>{
 let id=el.dataset.id;
 let c=cart[id];
@@ -237,30 +225,24 @@ onclick="add('${id}','${el.dataset.name}',${el.dataset.price})">ADD</button>`;
 }
 });
 
-/* CART BAR */
-let total=0,count=0;
+cartItems.innerHTML="";
+
 for(let k in cart){
-total+=cart[k].price*cart[k].qty;
-count+=cart[k].qty;
+let i=cart[k];
+total+=i.price*i.qty;
+count+=i.qty;
+
+cartItems.innerHTML+=`
+<div class="order">
+${i.name} x ${i.qty} = ₹${i.price*i.qty}
+</div>`;
 }
 
 cartBar.innerText=`${count} items • ₹${total}`;
-renderCartPage();
+totalAmount.innerText=total;
 }
 
-/* CART PAGE */
-function renderCartPage(){
-cartItems.innerHTML="";
-for(let k in cart){
-let i=cart[k];
-cartItems.innerHTML+=`
-<div class="order">
-${i.name} x ${i.qty}
-</div>`;
-}
-}
-
-/* LOAD ITEMS */
+/* ITEMS */
 onSnapshot(collection(db,"items"),snap=>{
 menu.innerHTML="";
 snap.forEach(doc=>{
@@ -281,56 +263,57 @@ menu.innerHTML+=`
 render();
 });
 
-/* CART CLICK → OPEN PAGE */
+/* CART CLICK */
 cartBar.onclick=()=>go("cartPage");
+
+/* LOCATION */
+window.getLocation=()=>{
+navigator.geolocation.getCurrentPosition(pos=>{
+address.value=`Lat:${pos.coords.latitude},Lng:${pos.coords.longitude}`;
+});
+};
 
 /* PLACE ORDER */
 window.placeOrder=async ()=>{
 let user=auth.currentUser;
 if(!user){alert("Login first");return;}
+if(!address.value){alert("Enter address");return;}
 
 await addDoc(collection(db,"orders"),{
 userId:user.uid,
 items:Object.values(cart),
+address:address.value,
+payment:payment.value,
 status:"pending",
-createdAt:Date.now(),
-deliveryLocation:null
+createdAt:Date.now()
 });
 
 cart={};
 render();
+alert("Order placed!");
 go("orders");
 };
 
-/* LOAD ORDERS */
+/* ORDERS */
 function loadOrders(uid){
 const q=query(collection(db,"orders"),where("userId","==",uid));
 
 onSnapshot(q,snap=>{
 let arr=[];
-snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+snap.forEach(doc=>arr.push(doc.data()));
+
 arr.sort((a,b)=>b.createdAt-a.createdAt);
 
 orderList.innerHTML="";
 arr.forEach(o=>{
-let btn="";
-if(o.status==="out for delivery" && o.deliveryLocation){
-btn=`<button class="track">Track</button>`;
-}
-
 orderList.innerHTML+=`
 <div class="order">
-${o.id.slice(0,6)}<br>
-${o.status}<br>
-${btn}
+${o.status}<br>${o.address}
 </div>`;
 });
 });
 }
-
 </script>
-
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
 
 </body>
 </html>
