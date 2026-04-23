@@ -8,31 +8,47 @@
 <style>
 body{margin:0;font-family:Arial;background:#f5f5f5}
 
-/* HEADER */
 header{
-background:#16a34a;color:white;padding:15px;
-display:flex;justify-content:space-between;align-items:center;
+background:#16a34a;
+color:white;
+padding:15px;
+display:flex;
+align-items:center;
+gap:10px;
 }
 
 /* SIDEBAR */
 .menu{
-position:fixed;left:-260px;top:0;width:260px;height:100%;
-background:white;transition:0.3s;z-index:1000;
+position:fixed;
+left:-260px;
+top:0;
+width:260px;
+height:100%;
+background:white;
+transition:0.3s;
+z-index:1000;
 }
 .menu.open{left:0}
 
 .menu-header{
-background:#16a34a;color:white;padding:20px;
+background:#16a34a;
+color:white;
+padding:20px;
 }
 
 .menu-item{
-padding:15px;border-bottom:1px solid #eee;cursor:pointer;
+padding:15px;
+border-bottom:1px solid #eee;
+cursor:pointer;
 }
 
 /* OVERLAY */
 #overlay{
-position:fixed;width:100%;height:100%;
-background:rgba(0,0,0,0.4);display:none;
+position:fixed;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+display:none;
 }
 
 /* CONTENT */
@@ -40,38 +56,66 @@ background:rgba(0,0,0,0.4);display:none;
 .grid{
 display:grid;
 grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-gap:12px;
+gap:10px;
 }
 
 .card{
-background:white;padding:10px;border-radius:10px;
+background:white;
+padding:10px;
+border-radius:10px;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 /* BUTTON */
 button{
-padding:8px;border:none;border-radius:6px;
-background:#16a34a;color:white;margin-top:5px;
+padding:8px;
+border:none;
+border-radius:6px;
+background:#16a34a;
+color:white;
+margin-top:5px;
 }
 
 /* CART */
 .cart{
-position:fixed;bottom:20px;left:50%;
+position:fixed;
+bottom:20px;
+left:50%;
 transform:translateX(-50%);
-background:#16a34a;color:white;
-padding:10px 20px;border-radius:30px;
+background:#16a34a;
+color:white;
+padding:10px 20px;
+border-radius:30px;
 display:none;
 }
 
 /* MODAL */
 .modal{
-position:fixed;top:0;left:0;width:100%;height:100%;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
 background:rgba(0,0,0,0.5);
-display:none;justify-content:center;align-items:center;
+display:none;
+justify-content:center;
+align-items:center;
 }
+
 .box{
-background:white;padding:20px;border-radius:10px;
-width:90%;max-width:400px;
+background:white;
+padding:20px;
+border-radius:10px;
+width:90%;
+max-width:400px;
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin:6px 0;
+border-radius:6px;
+border:1px solid #ccc;
 }
 </style>
 </head>
@@ -160,14 +204,16 @@ firebase.initializeApp(config);
 const db=firebase.firestore();
 const auth=firebase.auth();
 
-let cart=[], user=null;
-let map=null, marker=null;
+let cart=[];
+let user=null;
+let map=null;
+let marker=null;
 
 /* MENU */
 function openMenu(){menu.classList.add("open");overlay.style.display="block";}
 function closeMenu(){menu.classList.remove("open");overlay.style.display="none";}
 
-/* LOGIN */
+/* AUTH */
 function login(){
 const provider=new firebase.auth.GoogleAuthProvider();
 auth.signInWithPopup(provider);
@@ -189,7 +235,7 @@ logoutBtn.style.display="none";
 }
 });
 
-/* LOAD ITEMS */
+/* LOAD ITEMS (SYNC FROM ADMIN) */
 db.collection("items").onSnapshot(snap=>{
 itemsList.innerHTML="";
 snap.forEach(doc=>{
@@ -226,20 +272,22 @@ if(!user){alert("Login first");return;}
 
 db.collection("orders").add({
 userId:user.uid,
+userName:user.displayName,
 items:cart,
 address:address.value,
 payment:payment.value,
 status:"pending",
-createdAt:new Date()
+createdAt:firebase.firestore.FieldValue.serverTimestamp()
 });
 
 alert("Order placed!");
+
 cart=[];
 cartBtn.style.display="none";
 checkoutModal.style.display="none";
 }
 
-/* LOAD ORDERS (ONLY USER) */
+/* LOAD USER ORDERS (FILTERED) */
 function openOrders(){
 ordersModal.style.display="flex";
 
@@ -260,10 +308,10 @@ let o=doc.data();
 ordersList.innerHTML+=`
 <div style="border:1px solid #ddd;padding:10px;margin:5px;border-radius:6px">
 <b>Order:</b> ${doc.id.slice(0,6)}<br>
-<b>Status:</b> ${o.status}<br>
+<b>Status:</b> ${o.status || "pending"}<br>
 
 ${o.status==="out for delivery"
-? `<button onclick="track('${doc.id}')">Track Order</button>`
+? `<button onclick="trackOrder('${doc.id}')">Track Order</button>`
 : ""}
 
 </div>`;
@@ -271,8 +319,8 @@ ${o.status==="out for delivery"
 });
 }
 
-/* TRACK ORDER */
-function track(orderId){
+/* TRACK ORDER LIVE */
+function trackOrder(orderId){
 mapModal.style.display="flex";
 
 db.collection("orders").doc(orderId)
@@ -285,10 +333,12 @@ let lng=d.location.lng;
 
 if(!map){
 map=new google.maps.Map(document.getElementById("map"),{
-center:{lat,lng},zoom:15
+center:{lat,lng},
+zoom:15
 });
 marker=new google.maps.Marker({
-position:{lat,lng},map:map
+position:{lat,lng},
+map:map
 });
 }else{
 marker.setPosition({lat,lng});
