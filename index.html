@@ -5,7 +5,7 @@
 <title>Chicken Delivery</title>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#fafafa}
+body{margin:0;font-family:sans-serif;background:#f5f5f5}
 
 /* HEADER */
 header{
@@ -13,6 +13,13 @@ display:flex;align-items:center;
 padding:12px;background:white;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
 position:sticky;top:0;z-index:100;
+}
+
+/* LOGIN BUTTON */
+.login-btn{
+background:#16a34a;color:white;
+border:none;padding:6px 14px;
+border-radius:20px;font-weight:bold;
 }
 
 /* SIDEBAR */
@@ -23,72 +30,52 @@ background:white;transition:0.3s;
 z-index:200;
 }
 .sidebar.open{left:0}
+.menu-item{padding:15px;border-bottom:1px solid #eee}
 
-.menu-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
-
-/* OVERLAY */
 .overlay{
 position:fixed;width:100%;height:100%;
 background:rgba(0,0,0,0.4);
 display:none;z-index:150;
 }
 
-/* ITEM */
+/* ITEM CARD */
 .item{
 display:flex;
-justify-content:space-between;
-background:white;
-margin:10px;
-padding:12px;
-border-radius:14px;
+background:white;margin:10px;
+padding:10px;border-radius:14px;
 box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 
-.info{width:60%}
-.name{font-weight:bold}
-.price{color:#16a34a}
-
+.left{width:65%}
 .right{width:35%;text-align:center}
+
 .right img{
-width:100%;
-height:110px;
-object-fit:cover;
-border-radius:10px;
+width:100%;height:110px;
+border-radius:10px;object-fit:cover;
 }
 
-/* BUTTON */
 .add{
-background:white;
-border:1px solid #ff4d4d;
-color:#ff4d4d;
-padding:5px 15px;
-border-radius:10px;
-font-weight:bold;
+border:1px solid red;
+color:red;background:white;
+padding:5px 12px;border-radius:8px;
 margin-top:-20px;
 }
 
-/* QTY */
 .qty{
-display:flex;
-justify-content:center;
-gap:10px;
-margin-top:-20px;
+display:flex;justify-content:center;
+gap:10px;margin-top:-20px;
 }
 .qty button{
-background:#16a34a;color:white;border:none;
-border-radius:5px;padding:3px 8px;
+background:#16a34a;color:white;
+border:none;border-radius:5px;
 }
 
 /* CART */
 .cartbar{
-position:fixed;
-bottom:15px;
-left:50%;
-transform:translateX(-50%);
-background:#16a34a;
-color:white;
-padding:12px 20px;
-border-radius:25px;
+position:fixed;bottom:15px;
+left:50%;transform:translateX(-50%);
+background:#16a34a;color:white;
+padding:12px 20px;border-radius:25px;
 display:none;
 }
 
@@ -98,14 +85,9 @@ display:none;
 
 /* CARD */
 .card{
-background:white;
-padding:10px;
-margin:10px;
-border-radius:10px;
+background:white;padding:10px;
+margin:10px;border-radius:10px;
 }
-
-/* MAP */
-#map{height:300px;border-radius:10px}
 </style>
 </head>
 
@@ -113,8 +95,12 @@ border-radius:10px;
 
 <header>
 <span onclick="openMenu()">☰</span>
-<div style="flex:1;text-align:center">Chicken Delivery</div>
-<span id="authBtn" onclick="handleAuth()">Login</span>
+
+<div style="flex:1;text-align:center;font-weight:bold">
+Chicken Delivery
+</div>
+
+<button id="authBtn" class="login-btn" onclick="handleAuth()">Login</button>
 </header>
 
 <div class="overlay" id="overlay" onclick="closeMenu()"></div>
@@ -151,12 +137,6 @@ border-radius:10px;
 <div id="orderList"></div>
 </div>
 
-<!-- TRACK -->
-<div id="trackModal" class="page">
-<h3>Live Tracking</h3>
-<div id="map"></div>
-</div>
-
 <div id="cartBar" class="cartbar" onclick="go('cartPage')"></div>
 
 <!-- Firebase -->
@@ -174,7 +154,7 @@ projectId:"chicken-delivery-app-9e4f6"
 const db=firebase.firestore();
 const auth=firebase.auth();
 
-/* LOGIN FIXED */
+/* LOGIN FIX */
 function handleAuth(){
 if(auth.currentUser){
 logout();
@@ -188,8 +168,8 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
 .then(()=>{
 return auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
 })
-.catch(err=>{
-// fallback for mobile
+.catch(()=>{
+// mobile fallback
 auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
 });
 }
@@ -202,7 +182,7 @@ auth.onAuthStateChanged(user=>{
 if(user){
 authBtn.innerText="Logout";
 logoutBtn.style.display="block";
-userName.innerText=user.displayName || "User";
+userName.innerText=user.displayName;
 loadOrders(user.uid);
 }else{
 authBtn.innerText="Login";
@@ -268,7 +248,7 @@ cartItems.innerHTML+=`<div class="card">${i.name} x ${i.qty}</div>`;
 }
 }
 
-/* ITEMS */
+/* LOAD ITEMS */
 db.collection("items").onSnapshot(snap=>{
 items.innerHTML="";
 snap.forEach(doc=>{
@@ -276,9 +256,9 @@ let i=doc.data();
 
 items.innerHTML+=`
 <div class="item" data-id="${doc.id}" data-name="${i.name}" data-price="${i.price}">
-<div class="info">
-<div class="name">${i.name}</div>
-<div class="price">₹${i.price}</div>
+<div class="left">
+<b>${i.name}</b><br>
+₹${i.price}
 </div>
 <div class="right">
 <img src="${i.image}" onerror="this.src='https://via.placeholder.com/150'">
@@ -289,7 +269,7 @@ items.innerHTML+=`
 render();
 });
 
-/* ORDER */
+/* PLACE ORDER */
 function placeOrder(){
 let user=auth.currentUser;
 if(!user){alert("Login first");return;}
@@ -309,7 +289,7 @@ render();
 go("orders");
 }
 
-/* ORDERS */
+/* LOAD ORDERS (ONLY USER) */
 function loadOrders(uid){
 db.collection("orders")
 .where("userId","==",uid)
@@ -321,38 +301,13 @@ let o=doc.data();
 
 orderList.innerHTML+=`
 <div class="card">
-<b>${doc.id.slice(0,6)}</b><br>
-${o.status}<br>
-<button onclick="track('${doc.id}')">Track</button>
+Order: ${doc.id.slice(0,6)}<br>
+Status: ${o.status}
 </div>`;
 });
 });
 }
-
-/* TRACK */
-let map,marker,unsub;
-
-function track(id){
-go("trackModal");
-
-map=new google.maps.Map(document.getElementById("map"),{
-zoom:15,center:{lat:0,lng:0}
-});
-
-marker=new google.maps.Marker({map});
-
-unsub=db.collection("orders").doc(id)
-.onSnapshot(doc=>{
-let d=doc.data();
-if(d.deliveryLocation){
-marker.setPosition(d.deliveryLocation);
-map.setCenter(d.deliveryLocation);
-}
-});
-}
 </script>
-
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
 
 </body>
 </html>
