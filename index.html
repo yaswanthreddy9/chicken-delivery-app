@@ -14,7 +14,6 @@ padding:12px;background:white;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
 position:sticky;top:0
 }
-
 .menu{font-size:22px;margin-right:10px;cursor:pointer}
 .title{flex:1;text-align:center;font-weight:bold}
 .login{background:#16a34a;color:white;padding:6px 14px;border-radius:20px}
@@ -26,12 +25,11 @@ background:white;transition:.3s;z-index:20
 }
 .sidebar.active{left:0}
 .sidebar h3{padding:20px;margin:0;background:#16a34a;color:white}
-.sidebar div{padding:15px;border-bottom:1px solid #eee}
+.sidebar div{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
 
 .overlay{
 position:fixed;width:100%;height:100%;
-background:rgba(0,0,0,0.4);
-display:none;z-index:10
+background:rgba(0,0,0,0.4);display:none;z-index:10
 }
 
 /* PAGE */
@@ -45,7 +43,6 @@ background:white;margin:10px;padding:12px;
 border-radius:14px;
 box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
-
 .left{width:60%}
 .name{font-weight:bold}
 .price{color:#16a34a}
@@ -70,7 +67,6 @@ display:flex;gap:10px;
 background:#16a34a;color:white;
 padding:4px 10px;border-radius:10px;
 }
-
 .qty button{background:none;border:none;color:white}
 
 /* CART BAR */
@@ -79,6 +75,7 @@ position:fixed;bottom:15px;left:50%;
 transform:translateX(-50%);
 background:#16a34a;color:white;
 padding:12px 20px;border-radius:25px;
+cursor:pointer;
 }
 
 /* ORDER */
@@ -91,11 +88,9 @@ input,select{
 width:100%;padding:10px;margin-bottom:10px;
 border-radius:8px;border:1px solid #ccc
 }
-
 button.primary{
-width:100%;padding:12px;
-background:#16a34a;color:white;
-border:none;border-radius:10px
+width:100%;padding:12px;background:#16a34a;
+color:white;border:none;border-radius:10px
 }
 </style>
 </head>
@@ -206,6 +201,7 @@ render();
 window.inc=(id)=>{cart[id].qty++;render();}
 window.dec=(id)=>{cart[id].qty--;if(cart[id].qty<=0) delete cart[id];render();}
 
+/* RENDER */
 function render(){
 let total=0,count=0;
 
@@ -279,13 +275,30 @@ let user=auth.currentUser;
 if(!user){alert("Login first");return;}
 if(!address.value){alert("Enter address");return;}
 
+let total=0;
+let itemsArr=[];
+
+for(let k in cart){
+let i=cart[k];
+total+=i.price*i.qty;
+
+itemsArr.push({
+name:i.name,
+price:i.price,
+qty:i.qty
+});
+}
+
 await addDoc(collection(db,"orders"),{
 userId:user.uid,
-items:Object.values(cart),
+userName:user.displayName || "User",
+items:itemsArr,
+total:total,
 address:address.value,
 payment:payment.value,
 status:"pending",
-createdAt:Date.now()
+createdAt:Date.now(),
+deliveryLocation:null
 });
 
 cart={};
@@ -294,13 +307,16 @@ alert("Order placed!");
 go("orders");
 };
 
-/* ORDERS */
+/* LOAD ORDERS */
 function loadOrders(uid){
 const q=query(collection(db,"orders"),where("userId","==",uid));
 
 onSnapshot(q,snap=>{
 let arr=[];
-snap.forEach(doc=>arr.push(doc.data()));
+snap.forEach(doc=>{
+let d=doc.data();
+arr.push(d);
+});
 
 arr.sort((a,b)=>b.createdAt-a.createdAt);
 
@@ -308,7 +324,9 @@ orderList.innerHTML="";
 arr.forEach(o=>{
 orderList.innerHTML+=`
 <div class="order">
-${o.status}<br>${o.address}
+<b>Status:</b> ${o.status}<br>
+<b>Address:</b> ${o.address}<br>
+<b>Total:</b> ₹${o.total}
 </div>`;
 });
 });
