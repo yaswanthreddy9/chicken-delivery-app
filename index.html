@@ -1,69 +1,103 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chicken Delivery</title>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#f3f3f3}
+body{margin:0;font-family:system-ui;background:#fafafa}
 
+/* HEADER */
 header{
-background:#16a34a;color:#fff;
-padding:12px;display:flex;
-justify-content:space-between;align-items:center
+display:flex;align-items:center;
+padding:12px;background:white;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+position:sticky;top:0;
 }
 
-.menu-btn{font-size:22px;cursor:pointer}
+.menu{font-size:22px;margin-right:10px;cursor:pointer}
+.title{flex:1;text-align:center;font-weight:bold}
+.login{background:#16a34a;color:white;padding:6px 14px;border-radius:20px}
 
-.login-btn{
-background:#fff;color:#16a34a;
-padding:5px 10px;border-radius:20px;cursor:pointer
-}
-
-.sidebar{
-position:fixed;left:-250px;top:0;width:250px;height:100%;
-background:#fff;transition:.3s;z-index:10;
-box-shadow:2px 0 10px rgba(0,0,0,0.2)
-}
-.sidebar.active{left:0}
-
-.sidebar h3{padding:20px;margin:0;background:#16a34a;color:#fff}
-
-.sidebar a{
-display:block;padding:15px;border-bottom:1px solid #eee;cursor:pointer
-}
-
-.overlay{
-position:fixed;top:0;left:0;width:100%;height:100%;
-background:rgba(0,0,0,0.4);display:none;z-index:5
-}
-
-.page{display:none}
-.active{display:block}
-
+/* ITEM CARD */
 .card{
-background:#fff;margin:10px;padding:10px;
-border-radius:10px;display:flex;justify-content:space-between
+display:flex;
+justify-content:space-between;
+background:white;
+margin:10px;
+padding:12px;
+border-radius:14px;
+box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+
+.left{width:60%}
+.name{font-weight:bold}
+.price{color:#16a34a;font-weight:bold}
+.desc{font-size:12px;color:#666}
+
+.right{width:35%;position:relative;text-align:center}
+.right img{
+width:100%;
+height:110px;
+object-fit:cover;
+border-radius:10px;
 }
 
 .add-btn{
-background:#16a34a;color:#fff;
-padding:5px 10px;border:none;border-radius:6px
+position:absolute;
+bottom:-10px;
+left:50%;
+transform:translateX(-50%);
+background:white;
+border:1px solid #16a34a;
+color:#16a34a;
+padding:4px 16px;
+border-radius:10px;
+font-weight:bold;
 }
 
+.qty{
+position:absolute;
+bottom:-10px;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+gap:10px;
+background:#16a34a;
+color:white;
+padding:4px 10px;
+border-radius:10px;
+}
+
+.qty button{
+background:none;border:none;color:white;
+}
+
+/* CART */
 .cart{
-position:fixed;bottom:10px;left:10px;right:10px;
-background:#16a34a;color:#fff;padding:12px;
-border-radius:30px;text-align:center;font-weight:bold
+position:fixed;
+bottom:15px;
+left:50%;
+transform:translateX(-50%);
+background:#16a34a;
+color:white;
+padding:12px 20px;
+border-radius:25px;
 }
 
+/* PAGE */
+.page{display:none}
+.active{display:block}
+
+/* ORDERS */
 .order{
-background:#fff;margin:10px;padding:10px;border-radius:10px
+background:white;
+margin:10px;
+padding:10px;
+border-radius:10px;
 }
 
-.track{
-background:#000;color:#fff;padding:5px 10px;border-radius:5px;margin-top:5px
-}
+.track{background:black;color:white;padding:5px 10px;border-radius:6px;margin-top:5px}
 
 #map{height:300px;margin:10px;border-radius:10px}
 </style>
@@ -72,22 +106,12 @@ background:#000;color:#fff;padding:5px 10px;border-radius:5px;margin-top:5px
 <body>
 
 <header>
-<div class="menu-btn" onclick="openMenu()">☰</div>
-<div>Chicken Delivery</div>
-<div class="login-btn" id="authBtn">Login</div>
+<div class="menu">☰</div>
+<div class="title">Chicken Delivery</div>
+<div id="authBtn" class="login">Login</div>
 </header>
 
-<div class="overlay" id="overlay" onclick="closeMenu()"></div>
-
-<div class="sidebar" id="sidebar">
-<h3 id="userName">Guest</h3>
-<a onclick="go('home')">Home</a>
-<a onclick="go('orders')">Orders</a>
-<a onclick="logout()">Logout</a>
-</div>
-
 <div id="home" class="page active">
-<h3 style="padding:10px">Menu</h3>
 <div id="menu"></div>
 </div>
 
@@ -97,107 +121,122 @@ background:#000;color:#fff;padding:5px 10px;border-radius:5px;margin-top:5px
 </div>
 
 <div id="trackPage" class="page">
-<h3 style="padding:10px">Tracking</h3>
 <div id="map"></div>
 </div>
 
-<div class="cart" id="cartBar">0 items</div>
+<div id="cartBar" class="cart">0 items</div>
 
-<!-- ✅ FIXED FIREBASE (COMPAT VERSION) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<!-- MODULAR FIREBASE -->
+<script type="module">
 
-<!-- MAP -->
-<script src="https://maps.googleapis.com/maps/api/js?key=BLK2ZeC0XbIEylS90olGsHR6x2xrHKJ6dPXCWCtv5TMHv_2MW-ZcWh6VvQP08YCXek6YfUCCOacZQ-kqFYyoaKg"></script>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-<script>
+import { getFirestore, collection, addDoc, onSnapshot, query, where, doc } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* YOUR CONFIG */
 const firebaseConfig = {
-apiKey: "AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
-authDomain: "chicken-delivery-app-9e4f6.firebaseapp.com",
-projectId: "chicken-delivery-app-9e4f6"
+  apiKey: "AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
+  authDomain: "chicken-delivery-app-9e4f6.firebaseapp.com",
+  projectId: "chicken-delivery-app-9e4f6",
 };
 
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-const db = firebase.firestore();
-const auth = firebase.auth();
-
-/* MENU */
-function openMenu(){
-sidebar.classList.add("active");
-overlay.style.display="block";
-}
-function closeMenu(){
-sidebar.classList.remove("active");
-overlay.style.display="none";
-}
-function go(p){
-document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
-document.getElementById(p).classList.add("active");
-closeMenu();
-}
+const provider = new GoogleAuthProvider();
 
 /* LOGIN */
 authBtn.onclick=()=>{
 if(auth.currentUser){
-auth.signOut();
+signOut(auth);
 }else{
-auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+signInWithPopup(auth,provider);
 }
 };
 
-function logout(){auth.signOut();}
-
-auth.onAuthStateChanged(user=>{
+onAuthStateChanged(auth,user=>{
 if(user){
 authBtn.innerText="Logout";
-userName.innerText=user.displayName;
 loadOrders(user.uid);
 }else{
 authBtn.innerText="Login";
-userName.innerText="Guest";
 orderList.innerHTML="";
 }
-});
-
-/* LOAD MENU */
-db.collection("items").onSnapshot(snap=>{
-menu.innerHTML="";
-snap.forEach(doc=>{
-let d=doc.data();
-menu.innerHTML+=`
-<div class="card">
-<div><b>${d.name}</b><br>₹${d.price}</div>
-<button class="add-btn" onclick="add('${doc.id}','${d.name}',${d.price})">ADD</button>
-</div>`;
-});
 });
 
 /* CART */
 let cart={};
 
 function add(id,name,price){
-if(!cart[id])cart[id]={name,price,qty:0};
+if(!cart[id]) cart[id]={name,price,qty:0};
 cart[id].qty++;
-renderCart();
+render();
 }
 
-function renderCart(){
-let total=0,count=0;
-Object.values(cart).forEach(i=>{
-total+=i.price*i.qty;
-count+=i.qty;
-});
-cartBar.innerText=count+" items • ₹"+total;
+function render(){
+document.querySelectorAll(".card").forEach(el=>{
+let id=el.dataset.id;
+let c=cart[id];
+let box=el.querySelector(".action");
+
+if(c){
+box.innerHTML=`
+<div class="qty">
+<button onclick="dec('${id}')">-</button>${c.qty}
+<button onclick="inc('${id}')">+</button>
+</div>`;
+}else{
+box.innerHTML=`<button class="add-btn"
+onclick="add('${id}','${el.dataset.name}',${el.dataset.price})">ADD</button>`;
 }
+});
+
+let total=0,count=0;
+for(let k in cart){
+total+=cart[k].price*cart[k].qty;
+count+=cart[k].qty;
+}
+
+cartBar.innerText=`${count} items • ₹${total}`;
+}
+
+window.add=(id,name,price)=>add(id,name,price);
+window.inc=(id)=>{cart[id].qty++;render();}
+window.dec=(id)=>{cart[id].qty--;if(cart[id].qty<=0) delete cart[id];render();}
+
+/* LOAD ITEMS */
+onSnapshot(collection(db,"items"),snap=>{
+menu.innerHTML="";
+snap.forEach(doc=>{
+let d=doc.data();
+
+menu.innerHTML+=`
+<div class="card" data-id="${doc.id}" data-name="${d.name}" data-price="${d.price}">
+<div class="left">
+<div class="name">${d.name}</div>
+<div class="price">₹${d.price}</div>
+<div class="desc">${d.desc||""}</div>
+</div>
+
+<div class="right">
+<img src="${d.image||'https://via.placeholder.com/150'}">
+<div class="action"></div>
+</div>
+</div>`;
+});
+render();
+});
 
 /* PLACE ORDER */
-cartBar.onclick=()=>{
+cartBar.onclick=async ()=>{
 let user=auth.currentUser;
 if(!user){alert("Login first");return;}
 
-db.collection("orders").add({
+await addDoc(collection(db,"orders"),{
 userId:user.uid,
 items:Object.values(cart),
 status:"pending",
@@ -206,21 +245,17 @@ deliveryLocation:null
 });
 
 cart={};
-renderCart();
-go("orders");
+render();
 };
 
 /* LOAD ORDERS */
 function loadOrders(uid){
-db.collection("orders")
-.where("userId","==",uid)
-.onSnapshot(snap=>{
+const q=query(collection(db,"orders"),where("userId","==",uid));
 
+onSnapshot(q,snap=>{
 let arr=[];
 snap.forEach(doc=>{
-let d=doc.data();
-if(!d.userId)return;
-arr.push({id:doc.id,...d});
+arr.push({id:doc.id,...doc.data()});
 });
 
 arr.sort((a,b)=>b.createdAt-a.createdAt);
@@ -228,46 +263,24 @@ arr.sort((a,b)=>b.createdAt-a.createdAt);
 orderList.innerHTML="";
 
 arr.forEach(o=>{
-let trackBtn="";
-
+let btn="";
 if(o.status==="out for delivery" && o.deliveryLocation){
-trackBtn=`<button class="track" onclick="track('${o.id}')">Track</button>`;
+btn=`<button class="track" onclick="track('${o.id}')">Track</button>`;
 }
 
 orderList.innerHTML+=`
 <div class="order">
 <b>${o.id.slice(0,6)}</b><br>
 ${o.status}<br>
-${trackBtn}
+${btn}
 </div>`;
 });
 });
 }
 
-/* MAP */
-let map,marker;
-
-function track(id){
-go("trackPage");
-
-if(!map){
-map=new google.maps.Map(document.getElementById("map"),{
-zoom:15,
-center:{lat:17.38,lng:78.48}
-});
-marker=new google.maps.Marker({map});
-}
-
-db.collection("orders").doc(id)
-.onSnapshot(doc=>{
-let d=doc.data();
-if(d.deliveryLocation){
-marker.setPosition(d.deliveryLocation);
-map.setCenter(d.deliveryLocation);
-}
-});
-}
 </script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
 
 </body>
 </html>
