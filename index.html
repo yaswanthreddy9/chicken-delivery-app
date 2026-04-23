@@ -86,41 +86,36 @@ background:#000;color:#fff;padding:5px 10px;border-radius:5px;margin-top:5px
 <a onclick="logout()">Logout</a>
 </div>
 
-<!-- HOME -->
 <div id="home" class="page active">
 <h3 style="padding:10px">Menu</h3>
 <div id="menu"></div>
 </div>
 
-<!-- ORDERS -->
 <div id="orders" class="page">
 <h3 style="padding:10px">Your Orders</h3>
 <div id="orderList"></div>
 </div>
 
-<!-- TRACK -->
 <div id="trackPage" class="page">
 <h3 style="padding:10px">Tracking</h3>
 <div id="map"></div>
 </div>
 
-<div class="cart" id="cartBar" onclick="placeOrder()">0 items</div>
+<div class="cart" id="cartBar">0 items</div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<!-- ✅ FIXED FIREBASE (COMPAT VERSION) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<!-- 🔥 ADD YOUR GOOGLE MAP KEY HERE -->
+<!-- MAP -->
 <script src="https://maps.googleapis.com/maps/api/js?key=BLK2ZeC0XbIEylS90olGsHR6x2xrHKJ6dPXCWCtv5TMHv_2MW-ZcWh6VvQP08YCXek6YfUCCOacZQ-kqFYyoaKg"></script>
 
 <script>
-
-/* 🔥 ADD YOUR FIREBASE CONFIG HERE */
 const firebaseConfig = {
-  apiKey: "PASTE_FIREBASE_API_KEY",
-  authDomain: "PASTE_PROJECT.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID"
+apiKey: "AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
+authDomain: "chicken-delivery-app-9e4f6.firebaseapp.com",
+projectId: "chicken-delivery-app-9e4f6"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -148,8 +143,7 @@ authBtn.onclick=()=>{
 if(auth.currentUser){
 auth.signOut();
 }else{
-let provider=new firebase.auth.GoogleAuthProvider();
-auth.signInWithPopup(provider);
+auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
 }
 };
 
@@ -167,16 +161,14 @@ orderList.innerHTML="";
 }
 });
 
-/* MENU LOAD */
+/* LOAD MENU */
 db.collection("items").onSnapshot(snap=>{
 menu.innerHTML="";
 snap.forEach(doc=>{
 let d=doc.data();
 menu.innerHTML+=`
 <div class="card">
-<div>
-<b>${d.name}</b><br>₹${d.price}
-</div>
+<div><b>${d.name}</b><br>₹${d.price}</div>
 <button class="add-btn" onclick="add('${doc.id}','${d.name}',${d.price})">ADD</button>
 </div>`;
 });
@@ -201,7 +193,7 @@ cartBar.innerText=count+" items • ₹"+total;
 }
 
 /* PLACE ORDER */
-function placeOrder(){
+cartBar.onclick=()=>{
 let user=auth.currentUser;
 if(!user){alert("Login first");return;}
 
@@ -216,7 +208,7 @@ deliveryLocation:null
 cart={};
 renderCart();
 go("orders");
-}
+};
 
 /* LOAD ORDERS */
 function loadOrders(uid){
@@ -244,8 +236,8 @@ trackBtn=`<button class="track" onclick="track('${o.id}')">Track</button>`;
 
 orderList.innerHTML+=`
 <div class="order">
-<b>Order:</b> ${o.id.slice(0,6)}<br>
-<b>Status:</b> ${o.status}<br>
+<b>${o.id.slice(0,6)}</b><br>
+${o.status}<br>
 ${trackBtn}
 </div>`;
 });
