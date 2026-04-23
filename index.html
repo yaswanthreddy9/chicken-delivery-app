@@ -33,7 +33,7 @@ background:rgba(0,0,0,0.4);
 display:none;z-index:150;
 }
 
-/* ITEM CARD (VERTICAL LIKE SWIGGY) */
+/* ITEM */
 .item{
 display:flex;
 justify-content:space-between;
@@ -45,8 +45,8 @@ box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 
 .info{width:60%}
-.name{font-weight:bold;font-size:15px}
-.price{color:#16a34a;font-weight:bold;margin-top:5px}
+.name{font-weight:bold}
+.price{color:#16a34a}
 
 .right{width:35%;text-align:center}
 .right img{
@@ -64,7 +64,6 @@ color:#ff4d4d;
 padding:5px 15px;
 border-radius:10px;
 font-weight:bold;
-cursor:pointer;
 margin-top:-20px;
 }
 
@@ -80,7 +79,7 @@ background:#16a34a;color:white;border:none;
 border-radius:5px;padding:3px 8px;
 }
 
-/* CART BAR */
+/* CART */
 .cartbar{
 position:fixed;
 bottom:15px;
@@ -97,9 +96,6 @@ display:none;
 .page{display:none}
 .active{display:block;padding:10px}
 
-/* MAP */
-#map{height:300px;border-radius:10px}
-
 /* CARD */
 .card{
 background:white;
@@ -107,6 +103,9 @@ padding:10px;
 margin:10px;
 border-radius:10px;
 }
+
+/* MAP */
+#map{height:300px;border-radius:10px}
 </style>
 </head>
 
@@ -160,6 +159,7 @@ border-radius:10px;
 
 <div id="cartBar" class="cartbar" onclick="go('cartPage')"></div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -174,14 +174,24 @@ projectId:"chicken-delivery-app-9e4f6"
 const db=firebase.firestore();
 const auth=firebase.auth();
 
-/* AUTH */
+/* LOGIN FIXED */
 function handleAuth(){
-if(auth.currentUser) logout();
-else login();
+if(auth.currentUser){
+logout();
+}else{
+login();
+}
 }
 
 function login(){
-auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+.then(()=>{
+return auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+})
+.catch(err=>{
+// fallback for mobile
+auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+});
 }
 
 function logout(){
@@ -192,7 +202,7 @@ auth.onAuthStateChanged(user=>{
 if(user){
 authBtn.innerText="Logout";
 logoutBtn.style.display="block";
-userName.innerText=user.displayName;
+userName.innerText=user.displayName || "User";
 loadOrders(user.uid);
 }else{
 authBtn.innerText="Login";
@@ -271,7 +281,7 @@ items.innerHTML+=`
 <div class="price">₹${i.price}</div>
 </div>
 <div class="right">
-<img src="${i.image}">
+<img src="${i.image}" onerror="this.src='https://via.placeholder.com/150'">
 <div class="action"></div>
 </div>
 </div>`;
@@ -319,7 +329,7 @@ ${o.status}<br>
 });
 }
 
-/* LIVE TRACK */
+/* TRACK */
 let map,marker,unsub;
 
 function track(id){
@@ -331,7 +341,6 @@ zoom:15,center:{lat:0,lng:0}
 
 marker=new google.maps.Marker({map});
 
-/* REALTIME FROM FIRESTORE */
 unsub=db.collection("orders").doc(id)
 .onSnapshot(doc=>{
 let d=doc.data();
