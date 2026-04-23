@@ -5,7 +5,7 @@
 <title>Chicken Delivery</title>
 
 <style>
-body{margin:0;font-family:sans-serif;background:#f5f5f5}
+body{margin:0;font-family:Arial;background:#f5f5f5}
 
 /* HEADER */
 header{
@@ -15,14 +15,12 @@ box-shadow:0 2px 6px rgba(0,0,0,0.1);
 position:sticky;top:0;z-index:100;
 }
 
-/* MENU BUTTON */
 .menu{font-size:22px;cursor:pointer}
-
-/* LOGIN BUTTON */
+.title{flex:1;text-align:center;font-weight:bold}
 .login-btn{
 background:#16a34a;color:white;
 border:none;padding:6px 14px;
-border-radius:20px;font-weight:bold;
+border-radius:20px;
 }
 
 /* SIDEBAR */
@@ -35,39 +33,45 @@ z-index:200;
 .sidebar.open{left:0}
 .menu-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
 
-/* OVERLAY */
 .overlay{
 position:fixed;width:100%;height:100%;
 background:rgba(0,0,0,0.4);
 display:none;z-index:150;
 }
 
-/* ITEM */
+/* ITEM CARD */
 .item{
 display:flex;
-background:white;margin:10px;
-padding:12px;border-radius:14px;
+background:white;
+margin:10px;
+padding:10px;
+border-radius:14px;
 box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
+
 .left{width:65%}
 .right{width:35%;text-align:center}
+
 .right img{
 width:100%;height:110px;
-object-fit:cover;border-radius:10px;
+border-radius:10px;
+object-fit:cover;
 }
 
-/* BUTTON */
 .add{
-border:1px solid red;
-color:red;background:white;
-padding:5px 12px;border-radius:8px;
+border:1px solid #ff4d4d;
+color:#ff4d4d;
+background:white;
+padding:5px 12px;
+border-radius:10px;
 margin-top:-20px;
 }
 
-/* QTY */
 .qty{
-display:flex;justify-content:center;
-gap:10px;margin-top:-20px;
+display:flex;
+justify-content:center;
+gap:10px;
+margin-top:-20px;
 }
 .qty button{
 background:#16a34a;color:white;
@@ -76,22 +80,31 @@ border:none;border-radius:5px;
 
 /* CART BAR */
 .cartbar{
-position:fixed;bottom:15px;
-left:50%;transform:translateX(-50%);
-background:#16a34a;color:white;
-padding:12px 20px;border-radius:25px;
+position:fixed;
+bottom:15px;
+left:50%;
+transform:translateX(-50%);
+background:#16a34a;
+color:white;
+padding:12px 20px;
+border-radius:25px;
 display:none;
 }
 
-/* PAGE */
+/* PAGES */
 .page{display:none}
 .active{display:block;padding:10px}
 
 /* CARD */
 .card{
-background:white;padding:10px;
-margin:10px;border-radius:10px;
+background:white;
+padding:10px;
+margin:10px;
+border-radius:10px;
 }
+
+/* MAP */
+#map{height:300px;border-radius:10px;margin-top:10px}
 </style>
 </head>
 
@@ -99,23 +112,18 @@ margin:10px;border-radius:10px;
 
 <header>
 <span class="menu" onclick="openMenu()">☰</span>
-
-<div style="flex:1;text-align:center;font-weight:bold">
-Chicken Delivery
-</div>
-
+<div class="title">Chicken Delivery</div>
 <button id="authBtn" class="login-btn" onclick="handleAuth()">Login</button>
 </header>
 
-<!-- SIDEBAR -->
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
 <div class="sidebar" id="sidebar">
 <div id="userName" class="menu-item">Guest</div>
 <div class="menu-item" onclick="go('home')">Home</div>
 <div class="menu-item" onclick="go('orders')">Orders</div>
 <div id="logoutBtn" class="menu-item" onclick="logout()" style="display:none">Logout</div>
 </div>
-
-<div class="overlay" id="overlay" onclick="closeMenu()"></div>
 
 <!-- HOME -->
 <div id="home" class="page active">
@@ -126,7 +134,13 @@ Chicken Delivery
 <div id="cartPage" class="page">
 <h3>Cart</h3>
 <div id="cartItems"></div>
+
 <input id="address" placeholder="Address">
+<select id="payment">
+<option value="cod">Cash on Delivery</option>
+<option value="online">Pay Online</option>
+</select>
+
 <button onclick="placeOrder()">Place Order</button>
 </div>
 
@@ -134,6 +148,12 @@ Chicken Delivery
 <div id="orders" class="page">
 <h3>Your Orders</h3>
 <div id="orderList"></div>
+</div>
+
+<!-- TRACK -->
+<div id="trackPage" class="page">
+<h3>Live Tracking</h3>
+<div id="map"></div>
 </div>
 
 <div id="cartBar" class="cartbar" onclick="go('cartPage')"></div>
@@ -154,14 +174,8 @@ const db=firebase.firestore();
 const auth=firebase.auth();
 
 /* MENU */
-function openMenu(){
-sidebar.classList.add("open");
-overlay.style.display="block";
-}
-function closeMenu(){
-sidebar.classList.remove("open");
-overlay.style.display="none";
-}
+function openMenu(){sidebar.classList.add("open");overlay.style.display="block";}
+function closeMenu(){sidebar.classList.remove("open");overlay.style.display="none";}
 
 /* NAV */
 function go(p){
@@ -171,9 +185,7 @@ closeMenu();
 }
 
 /* LOGIN */
-function handleAuth(){
-auth.currentUser ? logout() : login();
-}
+function handleAuth(){auth.currentUser?logout():login();}
 
 function login(){
 auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
@@ -238,19 +250,16 @@ cartItems.innerHTML+=`<div class="card">${i.name} x ${i.qty}</div>`;
 }
 }
 
-/* LOAD ITEMS */
+/* ITEMS FROM ADMIN */
 db.collection("items").onSnapshot(snap=>{
 items.innerHTML="";
 snap.forEach(doc=>{
 let i=doc.data();
-
 items.innerHTML+=`
 <div class="item" data-id="${doc.id}" data-name="${i.name}" data-price="${i.price}">
-<div class="left">
-<b>${i.name}</b><br>₹${i.price}
-</div>
+<div class="left"><b>${i.name}</b><br>₹${i.price}</div>
 <div class="right">
-<img src="${i.image}" onerror="this.src='https://via.placeholder.com/150'">
+<img src="${i.image}">
 <div class="action"></div>
 </div>
 </div>`;
@@ -263,12 +272,19 @@ function placeOrder(){
 let user=auth.currentUser;
 if(!user){alert("Login first");return;}
 
+let paymentType=payment.value;
+
+if(paymentType==="online"){
+alert("Integrate Razorpay/Stripe here");
+}
+
 db.collection("orders").add({
 userId:user.uid,
 items:Object.values(cart),
 address:address.value,
 status:"pending",
-createdAt:Date.now()
+createdAt:Date.now(),
+deliveryLocation:null
 });
 
 cart={};
@@ -278,15 +294,10 @@ go("orders");
 
 /* LOAD ORDERS */
 function loadOrders(uid){
-db.collection("orders")
-.where("userId","==",uid)
+db.collection("orders").where("userId","==",uid)
 .onSnapshot(snap=>{
-
 let arr=[];
-snap.forEach(doc=>{
-arr.push({id:doc.id,...doc.data()});
-});
-
+snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
 arr.sort((a,b)=>b.createdAt-a.createdAt);
 
 orderList.innerHTML="";
@@ -294,12 +305,38 @@ arr.forEach(o=>{
 orderList.innerHTML+=`
 <div class="card">
 Order: ${o.id.slice(0,6)}<br>
-Status: ${o.status}
+Status: ${o.status}<br>
+<button onclick="track('${o.id}')">Track</button>
 </div>`;
 });
 });
 }
+
+/* TRACKING */
+let map,marker;
+
+function track(id){
+go("trackPage");
+
+map=new google.maps.Map(document.getElementById("map"),{
+zoom:15,
+center:{lat:17.385, lng:78.486} // default
+});
+
+marker=new google.maps.Marker({map});
+
+db.collection("orders").doc(id)
+.onSnapshot(doc=>{
+let d=doc.data();
+if(d.deliveryLocation){
+marker.setPosition(d.deliveryLocation);
+map.setCenter(d.deliveryLocation);
+}
+});
+}
 </script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
 
 </body>
 </html>
