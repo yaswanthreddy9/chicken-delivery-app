@@ -7,63 +7,64 @@
 <style>
 body{margin:0;font-family:sans-serif;background:#f3f3f3}
 
-/* HEADER */
 header{
 background:#16a34a;color:#fff;
 padding:12px;display:flex;
 justify-content:space-between;align-items:center
 }
+
 .menu-btn{font-size:22px;cursor:pointer}
+
 .login-btn{
 background:#fff;color:#16a34a;
 padding:5px 10px;border-radius:20px;cursor:pointer
 }
 
-/* SIDEBAR */
 .sidebar{
 position:fixed;left:-250px;top:0;width:250px;height:100%;
 background:#fff;transition:.3s;z-index:10;
 box-shadow:2px 0 10px rgba(0,0,0,0.2)
 }
 .sidebar.active{left:0}
+
 .sidebar h3{padding:20px;margin:0;background:#16a34a;color:#fff}
-.sidebar a{display:block;padding:15px;border-bottom:1px solid #eee;cursor:pointer}
+
+.sidebar a{
+display:block;padding:15px;border-bottom:1px solid #eee;cursor:pointer
+}
 
 .overlay{
 position:fixed;top:0;left:0;width:100%;height:100%;
 background:rgba(0,0,0,0.4);display:none;z-index:5
 }
 
-/* PAGE */
 .page{display:none}
 .active{display:block}
 
-/* MENU */
 .card{
 background:#fff;margin:10px;padding:10px;
 border-radius:10px;display:flex;justify-content:space-between
 }
+
 .add-btn{
 background:#16a34a;color:#fff;
 padding:5px 10px;border:none;border-radius:6px
 }
 
-/* CART */
 .cart{
 position:fixed;bottom:10px;left:10px;right:10px;
 background:#16a34a;color:#fff;padding:12px;
 border-radius:30px;text-align:center;font-weight:bold
 }
 
-/* ORDERS */
 .order{
 background:#fff;margin:10px;padding:10px;border-radius:10px
 }
+
 .track{
 background:#000;color:#fff;padding:5px 10px;border-radius:5px;margin-top:5px
 }
 
-/* MAP */
 #map{height:300px;margin:10px;border-radius:10px}
 </style>
 </head>
@@ -110,19 +111,22 @@ background:#000;color:#fff;padding:5px 10px;border-radius:5px;margin-top:5px
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 
-<!-- Maps -->
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_MAP_KEY"></script>
+<!-- 🔥 ADD YOUR GOOGLE MAP KEY HERE -->
+<script src="https://maps.googleapis.com/maps/api/js?key=BLK2ZeC0XbIEylS90olGsHR6x2xrHKJ6dPXCWCtv5TMHv_2MW-ZcWh6VvQP08YCXek6YfUCCOacZQ-kqFYyoaKg"></script>
 
 <script>
-const firebaseConfig={
-apiKey:"YOUR_KEY",
-authDomain:"YOUR_DOMAIN",
-projectId:"YOUR_ID"
+
+/* 🔥 ADD YOUR FIREBASE CONFIG HERE */
+const firebaseConfig = {
+  apiKey: "PASTE_FIREBASE_API_KEY",
+  authDomain: "PASTE_PROJECT.firebaseapp.com",
+  projectId: "PASTE_PROJECT_ID"
 };
+
 firebase.initializeApp(firebaseConfig);
 
-const db=firebase.firestore();
-const auth=firebase.auth();
+const db = firebase.firestore();
+const auth = firebase.auth();
 
 /* MENU */
 function openMenu(){
@@ -163,7 +167,7 @@ orderList.innerHTML="";
 }
 });
 
-/* LOAD MENU */
+/* MENU LOAD */
 db.collection("items").onSnapshot(snap=>{
 menu.innerHTML="";
 snap.forEach(doc=>{
@@ -214,7 +218,7 @@ renderCart();
 go("orders");
 }
 
-/* LOAD ORDERS (FIXED FILTER) */
+/* LOAD ORDERS */
 function loadOrders(uid){
 db.collection("orders")
 .where("userId","==",uid)
@@ -223,7 +227,7 @@ db.collection("orders")
 let arr=[];
 snap.forEach(doc=>{
 let d=doc.data();
-if(!d.userId) return; // ignore old bad data
+if(!d.userId)return;
 arr.push({id:doc.id,...d});
 });
 
