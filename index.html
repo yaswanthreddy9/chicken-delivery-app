@@ -6,37 +6,123 @@
 
 <style>
 body{margin:0;font-family:sans-serif;background:#f5f5f5}
-header{display:flex;align-items:center;padding:12px;background:white;box-shadow:0 2px 6px rgba(0,0,0,0.1);position:sticky;top:0}
-.login-btn{background:#16a34a;color:white;border:none;padding:6px 14px;border-radius:20px}
 
-.item{display:flex;background:white;margin:10px;padding:10px;border-radius:14px}
+/* HEADER */
+header{
+display:flex;align-items:center;
+padding:12px;background:white;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+position:sticky;top:0;z-index:100;
+}
+
+/* MENU BUTTON */
+.menu{font-size:22px;cursor:pointer}
+
+/* LOGIN BUTTON */
+.login-btn{
+background:#16a34a;color:white;
+border:none;padding:6px 14px;
+border-radius:20px;font-weight:bold;
+}
+
+/* SIDEBAR */
+.sidebar{
+position:fixed;left:-260px;top:0;
+width:260px;height:100%;
+background:white;transition:0.3s;
+z-index:200;
+}
+.sidebar.open{left:0}
+.menu-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
+
+/* OVERLAY */
+.overlay{
+position:fixed;width:100%;height:100%;
+background:rgba(0,0,0,0.4);
+display:none;z-index:150;
+}
+
+/* ITEM */
+.item{
+display:flex;
+background:white;margin:10px;
+padding:12px;border-radius:14px;
+box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
 .left{width:65%}
 .right{width:35%;text-align:center}
-.right img{width:100%;height:110px;border-radius:10px;object-fit:cover}
+.right img{
+width:100%;height:110px;
+object-fit:cover;border-radius:10px;
+}
 
-.add{border:1px solid red;color:red;background:white;padding:5px 12px;border-radius:8px;margin-top:-20px}
-.qty{display:flex;justify-content:center;gap:10px;margin-top:-20px}
-.qty button{background:#16a34a;color:white;border:none;border-radius:5px}
+/* BUTTON */
+.add{
+border:1px solid red;
+color:red;background:white;
+padding:5px 12px;border-radius:8px;
+margin-top:-20px;
+}
 
-.cartbar{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);background:#16a34a;color:white;padding:12px 20px;border-radius:25px;display:none}
+/* QTY */
+.qty{
+display:flex;justify-content:center;
+gap:10px;margin-top:-20px;
+}
+.qty button{
+background:#16a34a;color:white;
+border:none;border-radius:5px;
+}
 
+/* CART BAR */
+.cartbar{
+position:fixed;bottom:15px;
+left:50%;transform:translateX(-50%);
+background:#16a34a;color:white;
+padding:12px 20px;border-radius:25px;
+display:none;
+}
+
+/* PAGE */
 .page{display:none}
 .active{display:block;padding:10px}
-.card{background:white;padding:10px;margin:10px;border-radius:10px}
+
+/* CARD */
+.card{
+background:white;padding:10px;
+margin:10px;border-radius:10px;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-<div style="flex:1;text-align:center;font-weight:bold">Chicken Delivery</div>
+<span class="menu" onclick="openMenu()">☰</span>
+
+<div style="flex:1;text-align:center;font-weight:bold">
+Chicken Delivery
+</div>
+
 <button id="authBtn" class="login-btn" onclick="handleAuth()">Login</button>
 </header>
 
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+<div id="userName" class="menu-item">Guest</div>
+<div class="menu-item" onclick="go('home')">Home</div>
+<div class="menu-item" onclick="go('orders')">Orders</div>
+<div id="logoutBtn" class="menu-item" onclick="logout()" style="display:none">Logout</div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+<!-- HOME -->
 <div id="home" class="page active">
 <div id="items"></div>
 </div>
 
+<!-- CART -->
 <div id="cartPage" class="page">
 <h3>Cart</h3>
 <div id="cartItems"></div>
@@ -44,6 +130,7 @@ header{display:flex;align-items:center;padding:12px;background:white;box-shadow:
 <button onclick="placeOrder()">Place Order</button>
 </div>
 
+<!-- ORDERS -->
 <div id="orders" class="page">
 <h3>Your Orders</h3>
 <div id="orderList"></div>
@@ -51,6 +138,7 @@ header{display:flex;align-items:center;padding:12px;background:white;box-shadow:
 
 <div id="cartBar" class="cartbar" onclick="go('cartPage')"></div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -64,6 +152,23 @@ projectId:"chicken-delivery-app-9e4f6"
 
 const db=firebase.firestore();
 const auth=firebase.auth();
+
+/* MENU */
+function openMenu(){
+sidebar.classList.add("open");
+overlay.style.display="block";
+}
+function closeMenu(){
+sidebar.classList.remove("open");
+overlay.style.display="none";
+}
+
+/* NAV */
+function go(p){
+document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+document.getElementById(p).classList.add("active");
+closeMenu();
+}
 
 /* LOGIN */
 function handleAuth(){
@@ -80,18 +185,15 @@ function logout(){auth.signOut();}
 auth.onAuthStateChanged(user=>{
 if(user){
 authBtn.innerText="Logout";
+logoutBtn.style.display="block";
+userName.innerText=user.displayName;
 loadOrders(user.uid);
 }else{
 authBtn.innerText="Login";
-orderList.innerHTML="<p>Please login</p>";
+logoutBtn.style.display="none";
+userName.innerText="Guest";
 }
 });
-
-/* NAV */
-function go(p){
-document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
-document.getElementById(p).classList.add("active");
-}
 
 /* CART */
 let cart={};
@@ -141,9 +243,12 @@ db.collection("items").onSnapshot(snap=>{
 items.innerHTML="";
 snap.forEach(doc=>{
 let i=doc.data();
+
 items.innerHTML+=`
 <div class="item" data-id="${doc.id}" data-name="${i.name}" data-price="${i.price}">
-<div class="left"><b>${i.name}</b><br>₹${i.price}</div>
+<div class="left">
+<b>${i.name}</b><br>₹${i.price}
+</div>
 <div class="right">
 <img src="${i.image}" onerror="this.src='https://via.placeholder.com/150'">
 <div class="action"></div>
@@ -153,18 +258,17 @@ items.innerHTML+=`
 render();
 });
 
-/* PLACE ORDER (FIXED) */
+/* PLACE ORDER */
 function placeOrder(){
 let user=auth.currentUser;
 if(!user){alert("Login first");return;}
 
 db.collection("orders").add({
 userId:user.uid,
-userName:user.displayName,
 items:Object.values(cart),
-address:address.value || "Not provided",
+address:address.value,
 status:"pending",
-createdAt:Date.now()  // 🔥 FIX: always valid
+createdAt:Date.now()
 });
 
 cart={};
@@ -172,36 +276,27 @@ render();
 go("orders");
 }
 
-/* LOAD ORDERS (FIXED) */
+/* LOAD ORDERS */
 function loadOrders(uid){
 db.collection("orders")
 .where("userId","==",uid)
 .onSnapshot(snap=>{
 
-let orders=[];
-
+let arr=[];
 snap.forEach(doc=>{
-let d=doc.data();
-orders.push({
-id:doc.id,
-...d
-});
+arr.push({id:doc.id,...doc.data()});
 });
 
-/* SORT manually (fix for timestamp issue) */
-orders.sort((a,b)=>b.createdAt - a.createdAt);
+arr.sort((a,b)=>b.createdAt-a.createdAt);
 
 orderList.innerHTML="";
-
-orders.forEach(o=>{
+arr.forEach(o=>{
 orderList.innerHTML+=`
 <div class="card">
-<b>Order:</b> ${o.id.slice(0,6)}<br>
-<b>Status:</b> ${o.status}<br>
-<button onclick="alert('Tracking coming next')">Track</button>
+Order: ${o.id.slice(0,6)}<br>
+Status: ${o.status}
 </div>`;
 });
-
 });
 }
 </script>
