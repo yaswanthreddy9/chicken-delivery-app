@@ -1,119 +1,59 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chicken Delivery</title>
 
 <style>
-body{
-margin:0;
-font-family:sans-serif;
-background:#fafafa;
-}
+body{margin:0;font-family:sans-serif;background:#fafafa}
 
 /* HEADER */
 header{
-display:flex;
-align-items:center;
-gap:10px;
-padding:12px;
-background:white;
+display:flex;align-items:center;
+padding:12px;background:white;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
-position:sticky;
-top:0;
-z-index:100;
+position:sticky;top:0;z-index:100;
 }
 
 /* SIDEBAR */
 .sidebar{
-position:fixed;
-top:0;
-left:-250px;
-width:250px;
-height:100%;
+position:fixed;left:-260px;top:0;
+width:260px;height:100%;
 background:white;
-box-shadow:2px 0 6px rgba(0,0,0,0.2);
-transition:0.3s;
-z-index:200;
+transition:0.3s;z-index:200;
 }
-
 .sidebar.open{left:0}
 
-.menu-item{
-padding:15px;
-border-bottom:1px solid #eee;
-cursor:pointer;
-}
+.menu-item{padding:15px;border-bottom:1px solid #eee}
 
 /* OVERLAY */
 .overlay{
-position:fixed;
-width:100%;
-height:100%;
+position:fixed;width:100%;height:100%;
 background:rgba(0,0,0,0.4);
-display:none;
-z-index:150;
+display:none;z-index:150;
 }
 
-/* SECTION */
-.section{
-padding:10px;
-}
-
-.title{
-font-weight:bold;
-font-size:18px;
-margin-bottom:10px;
-}
-
-/* ITEM CARD */
+/* ITEMS */
+.section{padding:10px}
 .item{
-display:flex;
-justify-content:space-between;
-background:white;
-padding:10px;
-margin-bottom:10px;
-border-radius:12px;
+display:flex;justify-content:space-between;
+background:white;margin-bottom:10px;
+padding:10px;border-radius:12px;
 box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
-/* LEFT */
-.info{
-width:60%;
-}
+.info{width:60%}
+.name{font-weight:bold}
+.price{color:#16a34a}
 
-.name{
-font-weight:bold;
-margin-bottom:5px;
-}
-
-.price{
-color:#16a34a;
-font-weight:bold;
-margin-bottom:5px;
-}
-
-.desc{
-font-size:12px;
-color:#666;
-}
-
-/* RIGHT */
-.right{
-width:35%;
-text-align:center;
-}
-
+.right{width:35%;text-align:center}
 .right img{
-width:100%;
-height:100px;
-object-fit:cover;
-border-radius:10px;
+width:100%;height:100px;
+border-radius:10px;object-fit:cover;
 }
 
-/* ADD BUTTON */
-.add-btn{
-margin-top:-20px;
+/* BUTTON */
+.add{
 background:white;
 border:1px solid #ff4d4d;
 color:#ff4d4d;
@@ -123,10 +63,20 @@ font-weight:bold;
 cursor:pointer;
 }
 
-/* CART */
-.cart{
+/* QTY */
+.qty{
+display:flex;justify-content:center;
+gap:10px;margin-top:5px;
+}
+.qty button{
+background:#16a34a;color:white;
+border:none;border-radius:5px;
+}
+
+/* CART BAR */
+.cartbar{
 position:fixed;
-bottom:15px;
+bottom:10px;
 left:50%;
 transform:translateX(-50%);
 background:#16a34a;
@@ -135,6 +85,22 @@ padding:12px 20px;
 border-radius:25px;
 display:none;
 }
+
+/* PAGE */
+.page{display:none;padding:10px}
+.active{display:block}
+
+.card{
+background:white;
+padding:10px;
+margin:10px 0;
+border-radius:10px;
+}
+
+/* INPUT */
+input,select{
+width:100%;padding:8px;margin:8px 0;
+}
 </style>
 </head>
 
@@ -142,23 +108,50 @@ display:none;
 
 <header>
 <span onclick="openMenu()">☰</span>
-<div style="flex:1">Chicken Delivery</div>
+<div style="flex:1;text-align:center">Chicken Delivery</div>
 <span onclick="login()">👤</span>
 </header>
 
 <div class="overlay" id="overlay" onclick="closeMenu()"></div>
 
 <div class="sidebar" id="sidebar">
-<div class="menu-item" onclick="showOrders()">Orders</div>
+<div id="userName" class="menu-item">Guest</div>
+<div class="menu-item" onclick="go('home')">Home</div>
+<div class="menu-item" onclick="go('orders')">Orders</div>
 <div class="menu-item" onclick="logout()">Logout</div>
 </div>
 
+<!-- HOME -->
+<div id="home" class="page active">
 <div class="section">
-<div class="title">Recommended for you</div>
 <div id="items"></div>
 </div>
+</div>
 
-<div id="cart" class="cart"></div>
+<!-- CART PAGE -->
+<div id="cartPage" class="page">
+<h3>Cart</h3>
+<div id="cartItems"></div>
+
+<div class="card">
+<h4>Total: ₹<span id="total"></span></h4>
+<input id="address" placeholder="Enter address">
+<select id="payment">
+<option>Cash on Delivery</option>
+<option>Pay Online</option>
+</select>
+<button onclick="placeOrder()">Place Order</button>
+</div>
+</div>
+
+<!-- ORDERS -->
+<div id="orders" class="page">
+<h3>Your Orders</h3>
+<div id="orderList"></div>
+</div>
+
+<!-- CART BAR -->
+<div id="cartBar" class="cartbar" onclick="go('cartPage')"></div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -175,73 +168,150 @@ projectId:"chicken-delivery-app-9e4f6"
 const db=firebase.firestore();
 const auth=firebase.auth();
 
-/* MENU */
-function openMenu(){
-sidebar.classList.add("open");
-overlay.style.display="block";
-}
-
-function closeMenu(){
-sidebar.classList.remove("open");
-overlay.style.display="none";
-}
-
-/* AUTH */
+/* LOGIN */
 function login(){
 auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
 }
-function logout(){
-auth.signOut();
+function logout(){auth.signOut();}
+
+auth.onAuthStateChanged(user=>{
+if(user){
+userName.innerText=user.displayName;
+loadOrders(user.uid);
+}
+});
+
+/* SIDEBAR */
+function openMenu(){sidebar.classList.add("open");overlay.style.display="block";}
+function closeMenu(){sidebar.classList.remove("open");overlay.style.display="none";}
+
+/* NAV */
+function go(page){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(page).classList.add("active");
+closeMenu();
 }
 
 /* CART */
-let cart=[];
+let cart={};
 
-/* LOAD ITEMS FROM ADMIN */
+function add(id,name,price){
+if(!cart[id]) cart[id]={name,price,qty:1};
+else cart[id].qty++;
+render();
+}
+
+function inc(id){cart[id].qty++;render();}
+function dec(id){
+cart[id].qty--;
+if(cart[id].qty<=0) delete cart[id];
+render();
+}
+
+function render(){
+/* ITEMS */
+document.querySelectorAll(".item").forEach(el=>{
+let id=el.dataset.id;
+let c=cart[id];
+
+let box=el.querySelector(".action");
+
+if(c){
+box.innerHTML=`
+<div class="qty">
+<button onclick="dec('${id}')">-</button>
+${c.qty}
+<button onclick="inc('${id}')">+</button>
+</div>`;
+}else{
+box.innerHTML=`<button class="add" onclick="add('${id}','${el.dataset.name}',${el.dataset.price})">ADD</button>`;
+}
+});
+
+/* CART BAR */
+let total=0,count=0;
+for(let k in cart){
+total+=cart[k].price*cart[k].qty;
+count+=cart[k].qty;
+}
+
+if(count){
+cartBar.style.display="block";
+cartBar.innerText=`${count} items • ₹${total}`;
+}else cartBar.style.display="none";
+
+/* CART PAGE */
+cartItems.innerHTML="";
+for(let k in cart){
+let i=cart[k];
+cartItems.innerHTML+=`
+<div class="card">
+${i.name} x ${i.qty} = ₹${i.price*i.qty}
+</div>`;
+}
+total.innerText=total;
+}
+
+/* LOAD ITEMS */
 db.collection("items").onSnapshot(snap=>{
 items.innerHTML="";
-
 snap.forEach(doc=>{
 let i=doc.data();
 
 items.innerHTML+=`
-<div class="item">
+<div class="item" data-id="${doc.id}" data-name="${i.name}" data-price="${i.price}">
 <div class="info">
 <div class="name">${i.name}</div>
 <div class="price">₹${i.price}</div>
-<div class="desc">${i.desc || "Delicious food item"}</div>
 </div>
 
 <div class="right">
 <img src="${i.image}" onerror="this.src='https://via.placeholder.com/150'">
-<button class="add-btn" onclick="add('${doc.id}','${i.name}',${i.price})">ADD</button>
+<div class="action"></div>
 </div>
-</div>
-`;
+</div>`;
 });
+render();
 });
 
-/* ADD */
-function add(id,name,price){
-cart.push({id,name,price});
-updateCart();
-}
+/* ORDER */
+function placeOrder(){
+let user=auth.currentUser;
+if(!user){alert("Login first");return;}
 
-function updateCart(){
-if(cart.length===0){
-cart.style.display="none";
-return;
-}
+db.collection("orders").add({
+userId:user.uid,
+userName:user.displayName,
+items:Object.values(cart),
+address:address.value,
+payment:payment.value,
+status:"pending",
+createdAt:firebase.firestore.FieldValue.serverTimestamp()
+});
 
-let total=cart.reduce((a,b)=>a+b.price,0);
-
-cart.style.display="block";
-cart.innerHTML=`${cart.length} items • ₹${total}`;
+cart={};
+render();
+go("orders");
+alert("Order placed!");
 }
 
 /* ORDERS */
-function showOrders(){
-alert("Orders page coming next step");
+function loadOrders(uid){
+db.collection("orders")
+.where("userId","==",uid)
+.orderBy("createdAt","desc")
+.onSnapshot(snap=>{
+orderList.innerHTML="";
+snap.forEach(doc=>{
+let o=doc.data();
+
+orderList.innerHTML+=`
+<div class="card">
+<b>${doc.id.slice(0,6)}</b><br>
+${o.status}
+</div>`;
+});
+});
 }
 </script>
 
