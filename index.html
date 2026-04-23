@@ -10,90 +10,130 @@ body{margin:0;font-family:Arial;background:#f5f5f5}
 
 /* HEADER */
 header{
-background:#16a34a;
-color:white;
-padding:15px;
-font-size:18px;
+background:#16a34a;color:white;padding:15px;
+display:flex;justify-content:space-between;align-items:center;
 }
 
-/* CONTAINER */
-.container{padding:15px}
+/* SIDEBAR */
+.menu{
+position:fixed;left:-260px;top:0;width:260px;height:100%;
+background:white;transition:0.3s;z-index:1000;
+}
+.menu.open{left:0}
 
-/* GRID */
+.menu-header{
+background:#16a34a;color:white;padding:20px;
+}
+
+.menu-item{
+padding:15px;border-bottom:1px solid #eee;cursor:pointer;
+}
+
+/* OVERLAY */
+#overlay{
+position:fixed;width:100%;height:100%;
+background:rgba(0,0,0,0.4);display:none;
+}
+
+/* CONTENT */
+.container{padding:15px}
 .grid{
 display:grid;
 grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-gap:10px;
+gap:12px;
 }
 
-/* CARD */
 .card{
-background:white;
-padding:10px;
-border-radius:10px;
+background:white;padding:10px;border-radius:10px;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 /* BUTTON */
 button{
-padding:8px;
-border:none;
-border-radius:6px;
-background:#16a34a;
-color:white;
-margin-top:5px;
-cursor:pointer;
+padding:8px;border:none;border-radius:6px;
+background:#16a34a;color:white;margin-top:5px;
 }
 
 /* CART */
 .cart{
-position:fixed;
-bottom:20px;
-left:50%;
+position:fixed;bottom:20px;left:50%;
 transform:translateX(-50%);
-background:#16a34a;
-color:white;
-padding:10px 20px;
-border-radius:30px;
+background:#16a34a;color:white;
+padding:10px 20px;border-radius:30px;
 display:none;
 }
 
 /* MODAL */
 .modal{
-position:fixed;
-top:0;left:0;width:100%;height:100%;
+position:fixed;top:0;left:0;width:100%;height:100%;
 background:rgba(0,0,0,0.5);
-display:none;
-justify-content:center;
-align-items:center;
+display:none;justify-content:center;align-items:center;
 }
 .box{
-background:white;
-padding:15px;
-border-radius:10px;
-width:90%;
-max-width:400px;
+background:white;padding:20px;border-radius:10px;
+width:90%;max-width:400px;
 }
 </style>
 </head>
 
 <body>
 
-<header>Chicken Delivery</header>
+<header>
+<span onclick="openMenu()">☰</span>
+Chicken Delivery
+</header>
 
-<div class="container">
+<div id="overlay" onclick="closeMenu()"></div>
 
-<h3>Menu</h3>
-<div id="itemsList" class="grid"></div>
-
-<h3>Your Orders</h3>
-<div id="ordersList"></div>
-
+<!-- SIDEBAR -->
+<div id="menu" class="menu">
+<div class="menu-header">
+<h3 id="userName">Guest</h3>
+<p id="userEmail">Not logged in</p>
 </div>
 
-<div id="cartBtn" class="cart" onclick="placeOrder()">Place Order</div>
+<div id="loginBtn" class="menu-item" onclick="login()">🔐 Login with Google</div>
+<div class="menu-item" onclick="openOrders()">📦 My Orders</div>
+<div id="logoutBtn" class="menu-item" onclick="logout()" style="display:none">🚪 Logout</div>
+</div>
 
-<!-- MAP MODAL -->
+<div class="container">
+<h3>Menu</h3>
+<div id="itemsList" class="grid"></div>
+</div>
+
+<div id="cartBtn" class="cart" onclick="openCart()"></div>
+
+<!-- CART -->
+<div id="cartModal" class="modal">
+<div class="box">
+<h3>Cart</h3>
+<div id="cartItems"></div>
+<button onclick="checkout()">Next</button>
+</div>
+</div>
+
+<!-- CHECKOUT -->
+<div id="checkoutModal" class="modal">
+<div class="box">
+<input id="address" placeholder="Enter Address">
+<select id="payment">
+<option value="cod">Cash on Delivery</option>
+<option value="online">Pay Online</option>
+</select>
+<button onclick="placeOrder()">Confirm Order</button>
+</div>
+</div>
+
+<!-- ORDERS -->
+<div id="ordersModal" class="modal">
+<div class="box">
+<h3>Your Orders</h3>
+<div id="ordersList"></div>
+</div>
+</div>
+
+<!-- TRACKING -->
 <div id="mapModal" class="modal">
 <div class="box">
 <h3>Live Tracking</h3>
@@ -104,6 +144,7 @@ max-width:400px;
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <!-- Google Maps -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
@@ -117,12 +158,38 @@ projectId:"chicken-delivery-app-9e4f6"
 
 firebase.initializeApp(config);
 const db=firebase.firestore();
+const auth=firebase.auth();
 
-let cart=[];
-let map=null;
-let marker=null;
+let cart=[], user=null;
+let map=null, marker=null;
 
-/* LOAD ITEMS (REALTIME) */
+/* MENU */
+function openMenu(){menu.classList.add("open");overlay.style.display="block";}
+function closeMenu(){menu.classList.remove("open");overlay.style.display="none";}
+
+/* LOGIN */
+function login(){
+const provider=new firebase.auth.GoogleAuthProvider();
+auth.signInWithPopup(provider);
+}
+function logout(){auth.signOut();}
+
+auth.onAuthStateChanged(u=>{
+user=u;
+if(u){
+userName.innerText=u.displayName;
+userEmail.innerText=u.email;
+loginBtn.style.display="none";
+logoutBtn.style.display="block";
+}else{
+userName.innerText="Guest";
+userEmail.innerText="Not logged in";
+loginBtn.style.display="block";
+logoutBtn.style.display="none";
+}
+});
+
+/* LOAD ITEMS */
 db.collection("items").onSnapshot(snap=>{
 itemsList.innerHTML="";
 snap.forEach(doc=>{
@@ -130,85 +197,98 @@ let i=doc.data();
 
 itemsList.innerHTML+=`
 <div class="card">
-<b>${i.name}</b><br>
-₹${i.price}<br>
-<button onclick="addItem('${i.name}',${i.price})">ADD</button>
+<b>${i.name}</b><br>₹${i.price}
+<button onclick="add('${i.name}',${i.price})">ADD</button>
 </div>`;
 });
 });
 
 /* CART */
-function addItem(name,price){
+function add(name,price){
 cart.push({name,price});
 cartBtn.style.display="block";
-cartBtn.innerText=`${cart.length} items • Place Order`;
+cartBtn.innerText=`${cart.length} items`;
+}
+
+function openCart(){
+cartModal.style.display="flex";
+cartItems.innerHTML=cart.map(i=>i.name).join("<br>");
+}
+
+function checkout(){
+cartModal.style.display="none";
+checkoutModal.style.display="flex";
 }
 
 /* PLACE ORDER */
 function placeOrder(){
-
-if(cart.length===0){
-alert("Cart empty");
-return;
-}
+if(!user){alert("Login first");return;}
 
 db.collection("orders").add({
+userId:user.uid,
 items:cart,
+address:address.value,
+payment:payment.value,
 status:"pending",
-address:"User Address",
-payment:"cod",
 createdAt:new Date()
 });
 
 alert("Order placed!");
-
 cart=[];
 cartBtn.style.display="none";
+checkoutModal.style.display="none";
 }
 
-/* LOAD ORDERS (REALTIME) */
-db.collection("orders").onSnapshot(snap=>{
+/* LOAD ORDERS (ONLY USER) */
+function openOrders(){
+ordersModal.style.display="flex";
+
+if(!user){
+ordersList.innerHTML="Login to view orders";
+return;
+}
+
+db.collection("orders")
+.where("userId","==",user.uid)
+.onSnapshot(snap=>{
+
 ordersList.innerHTML="";
 
 snap.forEach(doc=>{
 let o=doc.data();
 
 ordersList.innerHTML+=`
-<div class="card">
+<div style="border:1px solid #ddd;padding:10px;margin:5px;border-radius:6px">
 <b>Order:</b> ${doc.id.slice(0,6)}<br>
 <b>Status:</b> ${o.status}<br>
 
 ${o.status==="out for delivery"
-? `<button onclick="trackOrder('${doc.id}')">Track Order</button>`
+? `<button onclick="track('${doc.id}')">Track Order</button>`
 : ""}
 
 </div>`;
 });
 });
+}
 
 /* TRACK ORDER */
-function trackOrder(orderId){
-
+function track(orderId){
 mapModal.style.display="flex";
 
 db.collection("orders").doc(orderId)
 .onSnapshot(doc=>{
 let d=doc.data();
-
 if(!d.location) return;
 
 let lat=d.location.lat;
 let lng=d.location.lng;
 
 if(!map){
-map = new google.maps.Map(document.getElementById("map"), {
-center:{lat,lng},
-zoom:15
+map=new google.maps.Map(document.getElementById("map"),{
+center:{lat,lng},zoom:15
 });
-
-marker = new google.maps.Marker({
-position:{lat,lng},
-map:map
+marker=new google.maps.Marker({
+position:{lat,lng},map:map
 });
 }else{
 marker.setPosition({lat,lng});
@@ -217,12 +297,29 @@ map.setCenter({lat,lng});
 });
 }
 
-/* CLOSE MODAL */
+/* CLOSE MODALS */
 window.onclick=e=>{
 if(e.target.classList.contains("modal")){
 e.target.style.display="none";
 }
 };
+
+/* DOM */
+const menu=document.getElementById("menu");
+const overlay=document.getElementById("overlay");
+const userName=document.getElementById("userName");
+const userEmail=document.getElementById("userEmail");
+const loginBtn=document.getElementById("loginBtn");
+const logoutBtn=document.getElementById("logoutBtn");
+const cartBtn=document.getElementById("cartBtn");
+const cartModal=document.getElementById("cartModal");
+const checkoutModal=document.getElementById("checkoutModal");
+const ordersModal=document.getElementById("ordersModal");
+const mapModal=document.getElementById("mapModal");
+const cartItems=document.getElementById("cartItems");
+const ordersList=document.getElementById("ordersList");
+const address=document.getElementById("address");
+const payment=document.getElementById("payment");
 </script>
 
 </body>
