@@ -10,57 +10,81 @@ body{margin:0;font-family:Arial;background:#f5f5f5}
 
 /* HEADER */
 header{
-background:#16a34a;color:white;padding:15px;
-display:flex;align-items:center;gap:10px;
+background:#16a34a;
+color:white;
+padding:15px;
+font-size:18px;
 }
 
 /* CONTAINER */
 .container{padding:15px}
 
+/* GRID */
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:10px;
+}
+
 /* CARD */
 .card{
-background:white;padding:15px;margin:10px 0;
+background:white;
+padding:10px;
 border-radius:10px;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 /* BUTTON */
 button{
-padding:8px;border:none;border-radius:6px;
-background:#16a34a;color:white;margin-top:5px;
+padding:8px;
+border:none;
+border-radius:6px;
+background:#16a34a;
+color:white;
+margin-top:5px;
+cursor:pointer;
 }
 
 /* CART */
 .cart{
-position:fixed;bottom:20px;left:50%;
+position:fixed;
+bottom:20px;
+left:50%;
 transform:translateX(-50%);
-background:#16a34a;color:white;padding:10px 20px;
-border-radius:30px;display:none;
+background:#16a34a;
+color:white;
+padding:10px 20px;
+border-radius:30px;
+display:none;
 }
 
 /* MODAL */
 .modal{
-position:fixed;top:0;left:0;width:100%;height:100%;
+position:fixed;
+top:0;left:0;width:100%;height:100%;
 background:rgba(0,0,0,0.5);
-display:none;justify-content:center;align-items:center;
+display:none;
+justify-content:center;
+align-items:center;
 }
 .box{
-background:white;padding:20px;border-radius:10px;
-width:90%;max-width:400px;
+background:white;
+padding:15px;
+border-radius:10px;
+width:90%;
+max-width:400px;
 }
 </style>
 </head>
 
 <body>
 
-<header>
-Chicken Delivery
-</header>
+<header>Chicken Delivery</header>
 
 <div class="container">
 
 <h3>Menu</h3>
-<div id="itemsList"></div>
+<div id="itemsList" class="grid"></div>
 
 <h3>Your Orders</h3>
 <div id="ordersList"></div>
@@ -95,7 +119,8 @@ firebase.initializeApp(config);
 const db=firebase.firestore();
 
 let cart=[];
-let map, marker;
+let map=null;
+let marker=null;
 
 /* LOAD ITEMS (REALTIME) */
 db.collection("items").onSnapshot(snap=>{
@@ -107,19 +132,25 @@ itemsList.innerHTML+=`
 <div class="card">
 <b>${i.name}</b><br>
 ₹${i.price}<br>
-<button onclick="add('${i.name}',${i.price})">ADD</button>
+<button onclick="addItem('${i.name}',${i.price})">ADD</button>
 </div>`;
 });
 });
 
 /* CART */
-function add(name,price){
+function addItem(name,price){
 cart.push({name,price});
 cartBtn.style.display="block";
+cartBtn.innerText=`${cart.length} items • Place Order`;
 }
 
 /* PLACE ORDER */
 function placeOrder(){
+
+if(cart.length===0){
+alert("Cart empty");
+return;
+}
 
 db.collection("orders").add({
 items:cart,
@@ -130,11 +161,12 @@ createdAt:new Date()
 });
 
 alert("Order placed!");
+
 cart=[];
 cartBtn.style.display="none";
 }
 
-/* LOAD ORDERS (REALTIME SYNC) */
+/* LOAD ORDERS (REALTIME) */
 db.collection("orders").onSnapshot(snap=>{
 ordersList.innerHTML="";
 
@@ -146,9 +178,52 @@ ordersList.innerHTML+=`
 <b>Order:</b> ${doc.id.slice(0,6)}<br>
 <b>Status:</b> ${o.status}<br>
 
-${o.status==="out for delivery" ? 
-`<button onclick="track('${doc.id}')">Track Order</button>` : ""}
+${o.status==="out for delivery"
+? `<button onclick="trackOrder('${doc.id}')">Track Order</button>`
+: ""}
 
 </div>`;
 });
 });
+
+/* TRACK ORDER */
+function trackOrder(orderId){
+
+mapModal.style.display="flex";
+
+db.collection("orders").doc(orderId)
+.onSnapshot(doc=>{
+let d=doc.data();
+
+if(!d.location) return;
+
+let lat=d.location.lat;
+let lng=d.location.lng;
+
+if(!map){
+map = new google.maps.Map(document.getElementById("map"), {
+center:{lat,lng},
+zoom:15
+});
+
+marker = new google.maps.Marker({
+position:{lat,lng},
+map:map
+});
+}else{
+marker.setPosition({lat,lng});
+map.setCenter({lat,lng});
+}
+});
+}
+
+/* CLOSE MODAL */
+window.onclick=e=>{
+if(e.target.classList.contains("modal")){
+e.target.style.display="none";
+}
+};
+</script>
+
+</body>
+</html>
