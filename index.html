@@ -6,132 +6,44 @@
 
 <style>
 body{margin:0;font-family:sans-serif;background:#f5f5f5}
+header{display:flex;align-items:center;padding:12px;background:white;box-shadow:0 2px 6px rgba(0,0,0,0.1);position:sticky;top:0}
+.login-btn{background:#16a34a;color:white;border:none;padding:6px 14px;border-radius:20px}
 
-/* HEADER */
-header{
-display:flex;align-items:center;
-padding:12px;background:white;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
-position:sticky;top:0;z-index:100;
-}
-
-/* LOGIN BUTTON */
-.login-btn{
-background:#16a34a;color:white;
-border:none;padding:6px 14px;
-border-radius:20px;font-weight:bold;
-}
-
-/* SIDEBAR */
-.sidebar{
-position:fixed;left:-260px;top:0;
-width:260px;height:100%;
-background:white;transition:0.3s;
-z-index:200;
-}
-.sidebar.open{left:0}
-.menu-item{padding:15px;border-bottom:1px solid #eee}
-
-.overlay{
-position:fixed;width:100%;height:100%;
-background:rgba(0,0,0,0.4);
-display:none;z-index:150;
-}
-
-/* ITEM CARD */
-.item{
-display:flex;
-background:white;margin:10px;
-padding:10px;border-radius:14px;
-box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
+.item{display:flex;background:white;margin:10px;padding:10px;border-radius:14px}
 .left{width:65%}
 .right{width:35%;text-align:center}
+.right img{width:100%;height:110px;border-radius:10px;object-fit:cover}
 
-.right img{
-width:100%;height:110px;
-border-radius:10px;object-fit:cover;
-}
+.add{border:1px solid red;color:red;background:white;padding:5px 12px;border-radius:8px;margin-top:-20px}
+.qty{display:flex;justify-content:center;gap:10px;margin-top:-20px}
+.qty button{background:#16a34a;color:white;border:none;border-radius:5px}
 
-.add{
-border:1px solid red;
-color:red;background:white;
-padding:5px 12px;border-radius:8px;
-margin-top:-20px;
-}
+.cartbar{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);background:#16a34a;color:white;padding:12px 20px;border-radius:25px;display:none}
 
-.qty{
-display:flex;justify-content:center;
-gap:10px;margin-top:-20px;
-}
-.qty button{
-background:#16a34a;color:white;
-border:none;border-radius:5px;
-}
-
-/* CART */
-.cartbar{
-position:fixed;bottom:15px;
-left:50%;transform:translateX(-50%);
-background:#16a34a;color:white;
-padding:12px 20px;border-radius:25px;
-display:none;
-}
-
-/* PAGE */
 .page{display:none}
 .active{display:block;padding:10px}
-
-/* CARD */
-.card{
-background:white;padding:10px;
-margin:10px;border-radius:10px;
-}
+.card{background:white;padding:10px;margin:10px;border-radius:10px}
 </style>
 </head>
 
 <body>
 
 <header>
-<span onclick="openMenu()">☰</span>
-
-<div style="flex:1;text-align:center;font-weight:bold">
-Chicken Delivery
-</div>
-
+<div style="flex:1;text-align:center;font-weight:bold">Chicken Delivery</div>
 <button id="authBtn" class="login-btn" onclick="handleAuth()">Login</button>
 </header>
 
-<div class="overlay" id="overlay" onclick="closeMenu()"></div>
-
-<div class="sidebar" id="sidebar">
-<div id="userName" class="menu-item">Guest</div>
-<div class="menu-item" onclick="go('home')">Home</div>
-<div class="menu-item" onclick="go('orders')">Orders</div>
-<div id="logoutBtn" class="menu-item" onclick="logout()" style="display:none">Logout</div>
-</div>
-
-<!-- HOME -->
 <div id="home" class="page active">
 <div id="items"></div>
 </div>
 
-<!-- CART -->
 <div id="cartPage" class="page">
 <h3>Cart</h3>
 <div id="cartItems"></div>
-
 <input id="address" placeholder="Address">
-<select id="payment">
-<option>Cash on Delivery</option>
-<option>Pay Online</option>
-</select>
-
 <button onclick="placeOrder()">Place Order</button>
 </div>
 
-<!-- ORDERS -->
 <div id="orders" class="page">
 <h3>Your Orders</h3>
 <div id="orderList"></div>
@@ -139,7 +51,6 @@ Chicken Delivery
 
 <div id="cartBar" class="cartbar" onclick="go('cartPage')"></div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -154,52 +65,32 @@ projectId:"chicken-delivery-app-9e4f6"
 const db=firebase.firestore();
 const auth=firebase.auth();
 
-/* LOGIN FIX */
+/* LOGIN */
 function handleAuth(){
-if(auth.currentUser){
-logout();
-}else{
-login();
-}
+auth.currentUser ? logout() : login();
 }
 
 function login(){
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-.then(()=>{
-return auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-})
-.catch(()=>{
-// mobile fallback
-auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
-});
+auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+.catch(()=>auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()));
 }
 
-function logout(){
-auth.signOut();
-}
+function logout(){auth.signOut();}
 
 auth.onAuthStateChanged(user=>{
 if(user){
 authBtn.innerText="Logout";
-logoutBtn.style.display="block";
-userName.innerText=user.displayName;
 loadOrders(user.uid);
 }else{
 authBtn.innerText="Login";
-logoutBtn.style.display="none";
-userName.innerText="Guest";
+orderList.innerHTML="<p>Please login</p>";
 }
 });
-
-/* MENU */
-function openMenu(){sidebar.classList.add("open");overlay.style.display="block";}
-function closeMenu(){sidebar.classList.remove("open");overlay.style.display="none";}
 
 /* NAV */
 function go(p){
 document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
 document.getElementById(p).classList.add("active");
-closeMenu();
 }
 
 /* CART */
@@ -220,14 +111,13 @@ let id=el.dataset.id;
 let c=cart[id];
 let box=el.querySelector(".action");
 
-if(c){
-box.innerHTML=`<div class="qty">
+box.innerHTML=c?
+`<div class="qty">
 <button onclick="dec('${id}')">-</button>${c.qty}
 <button onclick="inc('${id}')">+</button>
-</div>`;
-}else{
-box.innerHTML=`<button class="add" onclick="add('${id}','${el.dataset.name}',${el.dataset.price})">ADD</button>`;
-}
+</div>`
+:
+`<button class="add" onclick="add('${id}','${el.dataset.name}',${el.dataset.price})">ADD</button>`;
 });
 
 let total=0,count=0;
@@ -236,10 +126,8 @@ total+=cart[k].price*cart[k].qty;
 count+=cart[k].qty;
 }
 
-if(count){
-cartBar.style.display="block";
+cartBar.style.display=count?"block":"none";
 cartBar.innerText=`${count} items • ₹${total}`;
-}else cartBar.style.display="none";
 
 cartItems.innerHTML="";
 for(let k in cart){
@@ -253,13 +141,9 @@ db.collection("items").onSnapshot(snap=>{
 items.innerHTML="";
 snap.forEach(doc=>{
 let i=doc.data();
-
 items.innerHTML+=`
 <div class="item" data-id="${doc.id}" data-name="${i.name}" data-price="${i.price}">
-<div class="left">
-<b>${i.name}</b><br>
-₹${i.price}
-</div>
+<div class="left"><b>${i.name}</b><br>₹${i.price}</div>
 <div class="right">
 <img src="${i.image}" onerror="this.src='https://via.placeholder.com/150'">
 <div class="action"></div>
@@ -269,7 +153,7 @@ items.innerHTML+=`
 render();
 });
 
-/* PLACE ORDER */
+/* PLACE ORDER (FIXED) */
 function placeOrder(){
 let user=auth.currentUser;
 if(!user){alert("Login first");return;}
@@ -278,10 +162,9 @@ db.collection("orders").add({
 userId:user.uid,
 userName:user.displayName,
 items:Object.values(cart),
-address:address.value,
-payment:payment.value,
+address:address.value || "Not provided",
 status:"pending",
-createdAt:firebase.firestore.FieldValue.serverTimestamp()
+createdAt:Date.now()  // 🔥 FIX: always valid
 });
 
 cart={};
@@ -289,22 +172,36 @@ render();
 go("orders");
 }
 
-/* LOAD ORDERS (ONLY USER) */
+/* LOAD ORDERS (FIXED) */
 function loadOrders(uid){
 db.collection("orders")
 .where("userId","==",uid)
-.orderBy("createdAt","desc")
 .onSnapshot(snap=>{
-orderList.innerHTML="";
-snap.forEach(doc=>{
-let o=doc.data();
 
+let orders=[];
+
+snap.forEach(doc=>{
+let d=doc.data();
+orders.push({
+id:doc.id,
+...d
+});
+});
+
+/* SORT manually (fix for timestamp issue) */
+orders.sort((a,b)=>b.createdAt - a.createdAt);
+
+orderList.innerHTML="";
+
+orders.forEach(o=>{
 orderList.innerHTML+=`
 <div class="card">
-Order: ${doc.id.slice(0,6)}<br>
-Status: ${o.status}
+<b>Order:</b> ${o.id.slice(0,6)}<br>
+<b>Status:</b> ${o.status}<br>
+<button onclick="alert('Tracking coming next')">Track</button>
 </div>`;
 });
+
 });
 }
 </script>
