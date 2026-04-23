@@ -10,42 +10,45 @@ body{margin:0;font-family:system-ui;background:#fafafa}
 /* HEADER */
 header{
 display:flex;align-items:center;
-padding:12px;background:white;
+padding:12px;background:#fff;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
-position:sticky;top:0
+position:sticky;top:0;z-index:10;
 }
-.menu{font-size:22px;margin-right:10px;cursor:pointer}
+.menu{font-size:22px;cursor:pointer;margin-right:10px}
 .title{flex:1;text-align:center;font-weight:bold}
-.login{background:#16a34a;color:white;padding:6px 14px;border-radius:20px}
+.login{background:#16a34a;color:#fff;padding:6px 14px;border-radius:20px}
 
 /* SIDEBAR */
 .sidebar{
 position:fixed;left:-260px;top:0;width:260px;height:100%;
-background:white;transition:.3s;z-index:20
+background:#fff;transition:.3s;z-index:20;
+box-shadow:2px 0 10px rgba(0,0,0,0.2)
 }
 .sidebar.active{left:0}
-.sidebar h3{padding:20px;margin:0;background:#16a34a;color:white}
+.sidebar h3{padding:20px;margin:0;background:#16a34a;color:#fff}
 .sidebar div{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
 
 .overlay{
 position:fixed;width:100%;height:100%;
-background:rgba(0,0,0,0.4);display:none;z-index:10
+background:rgba(0,0,0,0.4);
+display:none;z-index:15;
 }
 
 /* PAGE */
 .page{display:none}
 .active{display:block}
 
-/* ITEM */
+/* ITEM CARD */
 .card{
 display:flex;justify-content:space-between;
-background:white;margin:10px;padding:12px;
+background:#fff;margin:10px;padding:12px;
 border-radius:14px;
 box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 .left{width:60%}
 .name{font-weight:bold}
 .price{color:#16a34a}
+.desc{font-size:12px;color:#666}
 
 .right{width:35%;position:relative;text-align:center}
 .right img{
@@ -53,34 +56,39 @@ width:100%;height:110px;
 object-fit:cover;border-radius:10px;
 }
 
+/* ADD */
 .add-btn{
 position:absolute;bottom:-10px;left:50%;
 transform:translateX(-50%);
-background:white;border:1px solid #16a34a;
+background:#fff;border:1px solid #16a34a;
 color:#16a34a;padding:4px 16px;border-radius:10px;
+font-weight:bold;
 }
 
+/* QTY */
 .qty{
 position:absolute;bottom:-10px;left:50%;
 transform:translateX(-50%);
 display:flex;gap:10px;
-background:#16a34a;color:white;
+background:#16a34a;color:#fff;
 padding:4px 10px;border-radius:10px;
 }
-.qty button{background:none;border:none;color:white}
+.qty button{background:none;border:none;color:#fff}
 
 /* CART BAR */
 .cart{
 position:fixed;bottom:15px;left:50%;
 transform:translateX(-50%);
-background:#16a34a;color:white;
+background:#16a34a;color:#fff;
 padding:12px 20px;border-radius:25px;
-cursor:pointer;
+cursor:pointer;font-weight:bold;
 }
 
-/* ORDER */
+/* ORDER CARD */
 .order{
-background:white;margin:10px;padding:10px;border-radius:10px
+background:#fff;margin:10px;padding:15px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,0.08)
 }
 
 /* INPUT */
@@ -88,9 +96,11 @@ input,select{
 width:100%;padding:10px;margin-bottom:10px;
 border-radius:8px;border:1px solid #ccc
 }
+
 button.primary{
-width:100%;padding:12px;background:#16a34a;
-color:white;border:none;border-radius:10px
+width:100%;padding:12px;
+background:#16a34a;color:#fff;
+border:none;border-radius:10px
 }
 </style>
 </head>
@@ -121,7 +131,6 @@ color:white;border:none;border-radius:10px
 <!-- CART -->
 <div id="cartPage" class="page">
 <h3 style="padding:10px">Cart</h3>
-
 <div id="cartItems"></div>
 
 <div style="padding:10px">
@@ -142,8 +151,15 @@ color:white;border:none;border-radius:10px
 
 <!-- ORDERS -->
 <div id="orders" class="page">
-<h3 style="padding:10px">Orders</h3>
+<h3 style="padding:10px">Your Orders</h3>
 <div id="orderList"></div>
+</div>
+
+<!-- TRACK -->
+<div id="trackingPage" class="page">
+<h3 style="padding:10px">Track Order</h3>
+<div id="trackingBox"></div>
+<button onclick="go('orders')" style="margin:10px">⬅ Back</button>
 </div>
 
 <div id="cartBar" class="cart">0 items</div>
@@ -151,9 +167,10 @@ color:white;border:none;border-radius:10px
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, where, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig={
+/* CONFIG */
+const firebaseConfig = {
 apiKey:"AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
 authDomain:"chicken-delivery-app-9e4f6.firebaseapp.com",
 projectId:"chicken-delivery-app-9e4f6"
@@ -186,6 +203,7 @@ userName.innerText=user.displayName;
 loadOrders(user.uid);
 }else{
 authBtn.innerText="Login";
+userName.innerText="Guest";
 }
 });
 
@@ -281,17 +299,12 @@ let itemsArr=[];
 for(let k in cart){
 let i=cart[k];
 total+=i.price*i.qty;
-
-itemsArr.push({
-name:i.name,
-price:i.price,
-qty:i.qty
-});
+itemsArr.push(i);
 }
 
 await addDoc(collection(db,"orders"),{
 userId:user.uid,
-userName:user.displayName || "User",
+userName:user.displayName,
 items:itemsArr,
 total:total,
 address:address.value,
@@ -303,7 +316,6 @@ deliveryLocation:null
 
 cart={};
 render();
-alert("Order placed!");
 go("orders");
 };
 
@@ -315,22 +327,57 @@ onSnapshot(q,snap=>{
 let arr=[];
 snap.forEach(doc=>{
 let d=doc.data();
-arr.push(d);
+if(!d.items || !d.total || !d.address) return;
+arr.push({id:doc.id,...d});
 });
 
 arr.sort((a,b)=>b.createdAt-a.createdAt);
 
 orderList.innerHTML="";
 arr.forEach(o=>{
+let items="";
+o.items.forEach(i=>items+=`${i.name} x${i.qty}<br>`);
+
+let trackBtn=o.status!=="pending"
+?`<button onclick="trackOrder('${o.id}')">Track</button>`:"";
+
 orderList.innerHTML+=`
 <div class="order">
-<b>Status:</b> ${o.status}<br>
-<b>Address:</b> ${o.address}<br>
-<b>Total:</b> ₹${o.total}
+<b>#${o.id.slice(0,6)}</b><br>
+${items}
+📍 ${o.address}<br>
+₹${o.total}<br>
+Status: ${o.status}<br>
+${trackBtn}
 </div>`;
 });
 });
 }
+
+/* TRACK */
+window.trackOrder=(id)=>{
+go("trackingPage");
+
+onSnapshot(doc(db,"orders",id),snap=>{
+let o=snap.data();
+if(!o)return;
+
+let steps=["pending","confirmed","out for delivery","delivered"];
+
+let html="";
+steps.forEach(s=>{
+let active=steps.indexOf(o.status)>=steps.indexOf(s);
+html+=`<div style="color:${active?'green':'#aaa'}">${s}</div>`;
+});
+
+trackingBox.innerHTML=`
+<b>Order #${id.slice(0,6)}</b><br>
+${html}
+📍 ${o.address}<br>
+₹${o.total}
+`;
+});
+};
 </script>
 
 </body>
