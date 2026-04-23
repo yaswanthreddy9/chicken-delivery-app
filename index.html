@@ -12,14 +12,36 @@ header{
 display:flex;align-items:center;
 padding:12px;background:white;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
-position:sticky;top:0;
+position:sticky;top:0;z-index:10
 }
 
-.menu{font-size:22px;margin-right:10px;cursor:pointer}
+.menu{font-size:22px;cursor:pointer;margin-right:10px}
 .title{flex:1;text-align:center;font-weight:bold}
 .login{background:#16a34a;color:white;padding:6px 14px;border-radius:20px}
 
-/* ITEM CARD */
+/* SIDEBAR */
+.sidebar{
+position:fixed;left:-260px;top:0;
+width:260px;height:100%;
+background:white;transition:.3s;
+z-index:20;
+box-shadow:2px 0 10px rgba(0,0,0,0.2)
+}
+.sidebar.active{left:0}
+.sidebar h3{padding:20px;margin:0;background:#16a34a;color:white}
+.sidebar div{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
+
+.overlay{
+position:fixed;width:100%;height:100%;
+background:rgba(0,0,0,0.4);
+display:none;z-index:15;
+}
+
+/* PAGE */
+.page{display:none}
+.active{display:block}
+
+/* CARD */
 .card{
 display:flex;
 justify-content:space-between;
@@ -32,17 +54,16 @@ box-shadow:0 2px 8px rgba(0,0,0,0.08);
 
 .left{width:60%}
 .name{font-weight:bold}
-.price{color:#16a34a;font-weight:bold}
+.price{color:#16a34a}
 .desc{font-size:12px;color:#666}
 
 .right{width:35%;position:relative;text-align:center}
 .right img{
-width:100%;
-height:110px;
-object-fit:cover;
-border-radius:10px;
+width:100%;height:110px;
+object-fit:cover;border-radius:10px;
 }
 
+/* BUTTON */
 .add-btn{
 position:absolute;
 bottom:-10px;
@@ -56,6 +77,7 @@ border-radius:10px;
 font-weight:bold;
 }
 
+/* QTY */
 .qty{
 position:absolute;
 bottom:-10px;
@@ -69,11 +91,9 @@ padding:4px 10px;
 border-radius:10px;
 }
 
-.qty button{
-background:none;border:none;color:white;
-}
+.qty button{background:none;border:none;color:white}
 
-/* CART */
+/* CART BAR */
 .cart{
 position:fixed;
 bottom:15px;
@@ -83,11 +103,8 @@ background:#16a34a;
 color:white;
 padding:12px 20px;
 border-radius:25px;
+cursor:pointer;
 }
-
-/* PAGE */
-.page{display:none}
-.active{display:block}
 
 /* ORDERS */
 .order{
@@ -96,8 +113,7 @@ margin:10px;
 padding:10px;
 border-radius:10px;
 }
-
-.track{background:black;color:white;padding:5px 10px;border-radius:6px;margin-top:5px}
+.track{background:black;color:white;padding:5px 10px;border-radius:6px}
 
 #map{height:300px;margin:10px;border-radius:10px}
 </style>
@@ -106,77 +122,104 @@ border-radius:10px;
 <body>
 
 <header>
-<div class="menu">☰</div>
+<div class="menu" onclick="openMenu()">☰</div>
 <div class="title">Chicken Delivery</div>
 <div id="authBtn" class="login">Login</div>
 </header>
 
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+<div class="sidebar" id="sidebar">
+<h3 id="userName">Guest</h3>
+<div onclick="go('home')">Home</div>
+<div onclick="go('cartPage')">Cart</div>
+<div onclick="go('orders')">Orders</div>
+<div onclick="logout()">Logout</div>
+</div>
+
+<!-- HOME -->
 <div id="home" class="page active">
 <div id="menu"></div>
 </div>
 
+<!-- CART PAGE -->
+<div id="cartPage" class="page">
+<h3 style="padding:10px">Cart</h3>
+<div id="cartItems"></div>
+<button onclick="placeOrder()">Place Order</button>
+</div>
+
+<!-- ORDERS -->
 <div id="orders" class="page">
-<h3 style="padding:10px">Your Orders</h3>
+<h3 style="padding:10px">Orders</h3>
 <div id="orderList"></div>
 </div>
 
+<!-- TRACK -->
 <div id="trackPage" class="page">
 <div id="map"></div>
 </div>
 
 <div id="cartBar" class="cart">0 items</div>
 
-<!-- MODULAR FIREBASE -->
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, where, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { getFirestore, collection, addDoc, onSnapshot, query, where, doc } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-/* YOUR CONFIG */
 const firebaseConfig = {
-  apiKey: "AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
-  authDomain: "chicken-delivery-app-9e4f6.firebaseapp.com",
-  projectId: "chicken-delivery-app-9e4f6",
+apiKey:"AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
+authDomain:"chicken-delivery-app-9e4f6.firebaseapp.com",
+projectId:"chicken-delivery-app-9e4f6"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const provider=new GoogleAuthProvider();
 
-const provider = new GoogleAuthProvider();
+/* MENU TOGGLE */
+window.openMenu=()=>{sidebar.classList.add("active");overlay.style.display="block";}
+window.closeMenu=()=>{sidebar.classList.remove("active");overlay.style.display="none";}
+
+/* NAV */
+window.go=(p)=>{
+document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+document.getElementById(p).classList.add("active");
+closeMenu();
+};
 
 /* LOGIN */
 authBtn.onclick=()=>{
-if(auth.currentUser){
-signOut(auth);
-}else{
-signInWithPopup(auth,provider);
-}
+auth.currentUser?signOut(auth):signInWithPopup(auth,provider);
 };
+
+window.logout=()=>signOut(auth);
 
 onAuthStateChanged(auth,user=>{
 if(user){
 authBtn.innerText="Logout";
+userName.innerText=user.displayName;
 loadOrders(user.uid);
 }else{
 authBtn.innerText="Login";
-orderList.innerHTML="";
+userName.innerText="Guest";
 }
 });
 
 /* CART */
 let cart={};
 
-function add(id,name,price){
-if(!cart[id]) cart[id]={name,price,qty:0};
+window.add=(id,name,price)=>{
+if(!cart[id])cart[id]={name,price,qty:0};
 cart[id].qty++;
 render();
-}
+};
 
+window.inc=(id)=>{cart[id].qty++;render();}
+window.dec=(id)=>{cart[id].qty--;if(cart[id].qty<=0) delete cart[id];render();}
+
+/* RENDER */
 function render(){
 document.querySelectorAll(".card").forEach(el=>{
 let id=el.dataset.id;
@@ -184,8 +227,7 @@ let c=cart[id];
 let box=el.querySelector(".action");
 
 if(c){
-box.innerHTML=`
-<div class="qty">
+box.innerHTML=`<div class="qty">
 <button onclick="dec('${id}')">-</button>${c.qty}
 <button onclick="inc('${id}')">+</button>
 </div>`;
@@ -195,6 +237,7 @@ onclick="add('${id}','${el.dataset.name}',${el.dataset.price})">ADD</button>`;
 }
 });
 
+/* CART BAR */
 let total=0,count=0;
 for(let k in cart){
 total+=cart[k].price*cart[k].qty;
@@ -202,11 +245,20 @@ count+=cart[k].qty;
 }
 
 cartBar.innerText=`${count} items • ₹${total}`;
+renderCartPage();
 }
 
-window.add=(id,name,price)=>add(id,name,price);
-window.inc=(id)=>{cart[id].qty++;render();}
-window.dec=(id)=>{cart[id].qty--;if(cart[id].qty<=0) delete cart[id];render();}
+/* CART PAGE */
+function renderCartPage(){
+cartItems.innerHTML="";
+for(let k in cart){
+let i=cart[k];
+cartItems.innerHTML+=`
+<div class="order">
+${i.name} x ${i.qty}
+</div>`;
+}
+}
 
 /* LOAD ITEMS */
 onSnapshot(collection(db,"items"),snap=>{
@@ -219,11 +271,9 @@ menu.innerHTML+=`
 <div class="left">
 <div class="name">${d.name}</div>
 <div class="price">₹${d.price}</div>
-<div class="desc">${d.desc||""}</div>
 </div>
-
 <div class="right">
-<img src="${d.image||'https://via.placeholder.com/150'}">
+<img src="${d.image}">
 <div class="action"></div>
 </div>
 </div>`;
@@ -231,8 +281,11 @@ menu.innerHTML+=`
 render();
 });
 
+/* CART CLICK → OPEN PAGE */
+cartBar.onclick=()=>go("cartPage");
+
 /* PLACE ORDER */
-cartBar.onclick=async ()=>{
+window.placeOrder=async ()=>{
 let user=auth.currentUser;
 if(!user){alert("Login first");return;}
 
@@ -246,6 +299,7 @@ deliveryLocation:null
 
 cart={};
 render();
+go("orders");
 };
 
 /* LOAD ORDERS */
@@ -254,23 +308,19 @@ const q=query(collection(db,"orders"),where("userId","==",uid));
 
 onSnapshot(q,snap=>{
 let arr=[];
-snap.forEach(doc=>{
-arr.push({id:doc.id,...doc.data()});
-});
-
+snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
 arr.sort((a,b)=>b.createdAt-a.createdAt);
 
 orderList.innerHTML="";
-
 arr.forEach(o=>{
 let btn="";
 if(o.status==="out for delivery" && o.deliveryLocation){
-btn=`<button class="track" onclick="track('${o.id}')">Track</button>`;
+btn=`<button class="track">Track</button>`;
 }
 
 orderList.innerHTML+=`
 <div class="order">
-<b>${o.id.slice(0,6)}</b><br>
+${o.id.slice(0,6)}<br>
 ${o.status}<br>
 ${btn}
 </div>`;
