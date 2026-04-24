@@ -108,16 +108,24 @@ width:100%;
 height:100%;
 background:rgba(0,0,0,0.5);
 display:none;
-justify-content:center;
-align-items:center;
-z-index:1100;
+justify-content:flex-end; /* slide from bottom (mobile feel) */
+z-index:9999;
 }
+
 .box{
 background:white;
-padding:20px;
-border-radius:10px;
-width:90%;
-max-width:400px;
+width:100%;
+height:80%; /* takes bottom 80% */
+border-radius:20px 20px 0 0;
+padding:15px;
+overflow-y:auto; /* SCROLL FIX */
+animation:slideUp .3s ease;
+}
+
+/* ANIMATION */
+@keyframes slideUp{
+from{transform:translateY(100%)}
+to{transform:translateY(0)}
 }
 
 /* ORDER */
@@ -187,7 +195,10 @@ Chicken Delivery
 <!-- ORDERS -->
 <div id="ordersModal" class="modal">
 <div class="box">
-<h3>Your Orders</h3>
+<div style="text-align:center;font-weight:bold;margin-bottom:10px">
+Your Orders
+</div>
+
 <div id="ordersList"></div>
 </div>
 </div>
@@ -370,29 +381,29 @@ db.collection("orders")
 .where("userId","==",user.uid)
 .onSnapshot(snap=>{
 
-ordersList.innerHTML="";
-
-let data = [];
+let data=[];
 
 snap.forEach(doc=>{
 data.push({id:doc.id, ...doc.data()});
 });
 
-/* SORT MANUALLY */
+/* LATEST FIRST */
 data.sort((a,b)=>{
-return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+return (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0);
 });
+
+ordersList.innerHTML="";
 
 /* RENDER */
 data.forEach(o=>{
 
-let items = o.items || [];
-let address = o.address || "No address";
-let total = o.total || 0;
-let status = o.status || "pending";
+let items=o.items||[];
+let address=o.address||"No address";
+let total=o.total||0;
+let status=o.status||"pending";
 
 let itemsText = items.length
-? items.map(i => `${i.name} x${i.qty || 1}`).join(", ")
+? items.map(i=>`${i.name} x${i.qty||1}`).join(", ")
 : "No items";
 
 /* COLOR */
@@ -401,7 +412,7 @@ if(status==="delivered") color="#16a34a";
 if(status==="rejected") color="#dc2626";
 if(status==="out for delivery") color="#2563eb";
 
-ordersList.innerHTML += `
+ordersList.innerHTML+=`
 <div style="
 background:#fff;
 padding:14px;
