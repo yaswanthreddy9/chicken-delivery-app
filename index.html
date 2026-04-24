@@ -464,6 +464,7 @@ function handlePaymentSelection() {
 }
 
 // ASYNC IMAGE UPLOAD & PLACE ORDER
+// ASYNC IMAGE UPLOAD & PLACE ORDER
 async function placeOrder() {
     if(!user) { alert("Please login first"); return; }
     
@@ -506,7 +507,7 @@ async function placeOrder() {
     btn.style.opacity = "0.7";
 
     try {
-        // Silently update their profile with the latest phone number they typed
+        // Silently update their profile
         db.collection("users").doc(user.uid).set({ name: orderName, phone: orderPhone }, { merge: true });
 
         if (payment === "ONLINE" && fileInput.files.length > 0) {
@@ -524,10 +525,24 @@ async function placeOrder() {
             total += cart[id].price * cart[id].qty;
         }
 
+        // --- NEW: SECURE SEQUENTIAL ORDER NUMBER GENERATOR ---
+        const counterRef = db.collection("settings").doc("orderCounter");
+        let newOrderNumber = await db.runTransaction(async (transaction) => {
+            const counterDoc = await transaction.get(counterRef);
+            let nextNum = 1000; // Starts at 1000 for the very first order
+            if (counterDoc.exists && counterDoc.data().lastNumber) {
+                nextNum = counterDoc.data().lastNumber + 1;
+            }
+            transaction.set(counterRef, { lastNumber: nextNum }, { merge: true });
+            return nextNum;
+        });
+        // -----------------------------------------------------
+
         await db.collection("orders").add({
             userId: user.uid,
             userName: orderName,
-            userPhone: orderPhone, // Added Phone to order database!
+            userPhone: orderPhone,
+            orderNumber: newOrderNumber, // <--- SAVES THE CLEAN ID (e.g., 1000)
             items,
             total,
             address: finalAddressText,
