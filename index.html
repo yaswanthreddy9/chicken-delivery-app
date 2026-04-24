@@ -124,7 +124,7 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
         <div id="upiPaymentSection" style="display: none; background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #16a34a; margin-bottom: 15px; text-align: center;">
             <p style="margin: 0 0 10px 0; font-weight: bold; color: #16a34a;">Scan & Pay ₹<span id="upiAmountText"></span></p>
             
-            <img src="https://via.placeholder.com/150?text=YOUR+QR+CODE" style="width: 150px; border-radius: 8px; margin-bottom: 10px;">
+            <img id="paymentQrImage" src="https://via.placeholder.com/150?text=Loading+QR..." style="width: 150px; border-radius: 8px; margin-bottom: 10px;">
             
             <button id="upiAppBtn" style="background: #2563eb; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; margin-bottom: 15px; cursor: pointer;">
                 📱 Open UPI App on Phone
@@ -191,15 +191,16 @@ firebase.initializeApp({
     apiKey: "AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
     authDomain: "chicken-delivery-app-9e4f6.firebaseapp.com",
     projectId: "chicken-delivery-app-9e4f6",
-    storageBucket: "chicken-delivery-app-9e4f6.appspot.com" // Important for Storage
+    storageBucket: "chicken-delivery-app-9e4f6.appspot.com"
 });
 
 const db = firebase.firestore();
 const auth = firebase.auth();
 const storage = firebase.storage();
 
-// REPLACE WITH YOUR ACTUAL UPI ID
-const MY_UPI_ID = "yourname@bank"; 
+// Variables for Dynamic Payment Settings
+let vendorUpiId = "";
+let vendorQrUrl = "";
 
 let cart = {};
 let itemsCache = {};
@@ -226,6 +227,23 @@ auth.onAuthStateChanged(u => {
     }
 });
 
+/* =========================
+   LOAD VENDOR PAYMENT SETTINGS
+========================= */
+db.collection("settings").doc("payment").onSnapshot(doc => {
+    if(doc.exists) {
+        let data = doc.data();
+        vendorUpiId = data.upiId || "";
+        vendorQrUrl = data.qrUrl || "https://via.placeholder.com/150?text=No+QR+Found";
+        
+        const qrImage = document.getElementById('paymentQrImage');
+        if(qrImage) qrImage.src = vendorQrUrl;
+    }
+});
+
+/* =========================
+   MENU & CART LOGIC
+========================= */
 db.collection("items").onSnapshot(snap => {
     document.getElementById('itemsList').innerHTML = "";
     itemsCache = {};
@@ -348,19 +366,27 @@ function handlePaymentSelection() {
     const upiSection = document.getElementById('upiPaymentSection');
     
     if (paymentMethod === "ONLINE") {
+        // Failsafe: If admin hasn't set up the UPI details yet
+        if(!vendorUpiId) {
+            alert("Online payment is currently unavailable. Please select Cash on Delivery.");
+            document.getElementById('payment').value = "";
+            upiSection.style.display = "none";
+            return;
+        }
+
         upiSection.style.display = "block";
         let total = 0;
         for(let id in cart) { total += cart[id].price * cart[id].qty; }
         document.getElementById('upiAmountText').innerText = total;
 
-        const upiLink = `upi://pay?pa=${MY_UPI_ID}&pn=Chicken%20Delivery&am=${total}&cu=INR`;
+        const upiLink = `upi://pay?pa=${vendorUpiId}&pn=Chicken%20Delivery&am=${total}&cu=INR`;
         document.getElementById('upiAppBtn').onclick = () => { window.location.href = upiLink; };
     } else {
         upiSection.style.display = "none";
     }
 }
 
-// NOW ASYNC FOR IMAGE UPLOAD
+// ASYNC IMAGE UPLOAD & PLACE ORDER
 async function placeOrder() {
     if(!user) { alert("Please login first"); return; }
     
@@ -392,14 +418,12 @@ async function placeOrder() {
         }
     }
 
-    // Change Button State so user doesn't double click
     const btn = document.getElementById('placeOrderBtn');
     btn.innerText = "Uploading & Placing Order...";
     btn.disabled = true;
     btn.style.opacity = "0.7";
 
     try {
-        // UPLOAD IMAGE TO FIREBASE STORAGE
         if (payment === "ONLINE" && fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const storageRef = storage.ref();
@@ -416,7 +440,6 @@ async function placeOrder() {
             total += cart[id].price * cart[id].qty;
         }
 
-        // SAVE ORDER TO FIRESTORE
         await db.collection("orders").add({
             userId: user.uid,
             userName: user.displayName,
@@ -425,7 +448,7 @@ async function placeOrder() {
             address: finalAddressText,
             deliveryLocation: (deliveryLat && deliveryLng) ? { lat: deliveryLat, lng: deliveryLng } : null,
             payment: payment,
-            paymentScreenshot: screenshotUrl, // Attaches the secure image link
+            paymentScreenshot: screenshotUrl,
             status: "pending",
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -451,7 +474,6 @@ async function placeOrder() {
         console.error("Error placing order: ", error);
         alert("Something went wrong. Please check your connection and try again.");
     } finally {
-        // Reset button state
         btn.innerText = "Place Order";
         btn.disabled = false;
         btn.style.opacity = "1";
@@ -546,7 +568,7 @@ function initializeMapTracking(orderId, dropOffLocation) {
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry,places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry,places"></script>
 
 </body>
 </html>
