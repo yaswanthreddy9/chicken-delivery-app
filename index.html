@@ -103,9 +103,15 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
             <span id="gpsIcon">📍</span> <span id="gpsText">Set exact map location</span>
         </button>
 
-        <div id="specificAddressContainer" style="display: none; background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
-            <p style="margin: 0 0 10px 0; font-size: 14px; color: #16a34a; font-weight: bold;">✅ Map Location Set</p>
-            <textarea id="exactAddress" rows="2" placeholder="House/Flat No, Floor, Building (We grabbed the street for you!)" style="margin-bottom: 0; resize: none;"></textarea>
+        <div id="specificAddressContainer" style="display: none; margin-bottom: 15px;">
+            
+            <div style="background: #eefce9; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; border: 1px solid #ccebc4;">
+                <b style="display:block; margin-bottom: 4px; color: #16a34a;">📍 Map Location Set:</b>
+                <span id="displayGeocodedAddress" style="color: #444; line-height: 1.4;"></span>
+            </div>
+            
+            <input id="flatNumber" placeholder="House / Flat No, Floor, Building *" style="border: 1px solid #16a34a; background: #fff;">
+            <input id="landmark" placeholder="Nearby Landmark / Area (Optional)">
         </div>
 
         <div id="manualAddressContainer">
@@ -127,10 +133,13 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
     <div class="box" style="height: 80%; display: flex; flex-direction: column; padding: 0;">
         <div style="padding: 15px; background: white; border-radius: 20px 20px 0 0; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <h3 style="margin: 0;">Adjust Your Location</h3>
-            <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">Drag the pin exactly to your delivery spot.</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">Move the map to place the pin at your exact spot.</p>
         </div>
         
-        <div id="pickerMap" style="flex: 1; width: 100%;"></div>
+        <div style="position: relative; flex: 1; width: 100%;">
+            <div id="pickerMap" style="width: 100%; height: 100%;"></div>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; pointer-events: none; z-index: 10; text-shadow: 0px 4px 4px rgba(0,0,0,0.3);">📍</div>
+        </div>
         
         <div style="padding: 15px; background: white; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);">
             <div id="pickedAddressText" style="font-size: 14px; color: #333; margin-bottom: 10px; font-weight: bold; min-height: 20px;">Fetching address...</div>
@@ -283,11 +292,10 @@ function updateCart() {
 function openCart() { document.getElementById('cartModal').style.display = "flex"; }
 function checkout() { document.getElementById('cartModal').style.display = "none"; document.getElementById('checkoutModal').style.display = "flex"; }
 
-
 /* =========================
    LOCATION PICKER & GEOCODING
 ========================= */
-let pickerMap, pickerMarker, geocoder;
+let pickerMap, geocoder;
 
 function openLocationPicker() {
     document.getElementById('locationPickerModal').style.display = "flex";
@@ -297,8 +305,8 @@ function openLocationPicker() {
         navigator.geolocation.getCurrentPosition(pos => {
             initPickerMap(pos.coords.latitude, pos.coords.longitude);
         }, err => {
-            alert("Could not get exact location. Please drag the pin manually.");
-            initPickerMap(17.385, 78.4867); // Default to city center
+            alert("Could not get exact location. Please drag the map manually.");
+            initPickerMap(17.385, 78.4867); // Default
         }, { enableHighAccuracy: true });
     } else {
         initPickerMap(17.385, 78.4867);
@@ -319,21 +327,17 @@ function initPickerMap(lat, lng) {
         zoomControl: true
     });
 
-    pickerMarker = new google.maps.Marker({
-        position: centerPos,
-        map: pickerMap,
-        draggable: true,
-        animation: google.maps.Animation.DROP
+    geocodePosition(pickerMap.getCenter());
+
+    google.maps.event.addListener(pickerMap, 'dragstart', function() {
+        document.getElementById('pickedAddressText').innerText = "Moving...";
     });
 
-    geocodePosition(pickerMarker.getPosition());
-
-    google.maps.event.addListener(pickerMarker, 'dragend', function() {
-        deliveryLat = pickerMarker.getPosition().lat();
-        deliveryLng = pickerMarker.getPosition().lng();
-        pickerMap.panTo(pickerMarker.getPosition());
+    google.maps.event.addListener(pickerMap, 'idle', function() {
+        deliveryLat = pickerMap.getCenter().lat();
+        deliveryLng = pickerMap.getCenter().lng();
         document.getElementById('pickedAddressText').innerText = "Fetching address...";
-        geocodePosition(pickerMarker.getPosition());
+        geocodePosition(pickerMap.getCenter());
     });
 }
 
@@ -351,15 +355,15 @@ function confirmPickedLocation() {
     document.getElementById('locationPickerModal').style.display = "none";
     
     document.getElementById('gpsIcon').innerText = "✅";
-    document.getElementById('gpsText').innerText = "Map Location Set!";
+    document.getElementById('gpsText').innerText = "Map Location Saved!";
     
+    // Switch to the specific address form
     document.getElementById('manualAddressContainer').style.display = "none";
     document.getElementById('specificAddressContainer').style.display = "block";
     
+    // Show the geocoded address as text
     const fetchedAddress = document.getElementById('pickedAddressText').innerText;
-    if(fetchedAddress !== "Fetching address..." && !fetchedAddress.includes("Area address not found")) {
-        document.getElementById('exactAddress').value = "\n" + fetchedAddress;
-    }
+    document.getElementById('displayGeocodedAddress').innerText = fetchedAddress;
 }
 
 /* =========================
@@ -370,16 +374,25 @@ function placeOrder() {
     
     let finalAddressText = "";
     const manualInput = document.getElementById('manualAddress').value;
-    const exactInput = document.getElementById('exactAddress').value;
+    
+    const flatNum = document.getElementById('flatNumber').value;
+    const landmark = document.getElementById('landmark').value;
+    const geocodedText = document.getElementById('displayGeocodedAddress').innerText;
+    
     const payment = document.getElementById('payment').value;
 
     if (deliveryLat && deliveryLng) {
-        if (!exactInput.trim()) {
-            alert("Please add your House/Flat number above the map address!");
+        // If they used the map, Flat Number is required
+        if (!flatNum.trim()) {
+            alert("Please enter your House/Flat Number!");
             return;
         }
-        finalAddressText = exactInput + " (Map Pin Provided)";
+        
+        let landmarkText = landmark.trim() ? `, Landmark: ${landmark}` : "";
+        finalAddressText = `${flatNum}${landmarkText}, ${geocodedText} (Map Pin Provided)`;
+        
     } else {
+        // If they skipped the map, manual address is required
         if (!manualInput.trim()) {
             alert("Please enter your full delivery address");
             return;
@@ -411,12 +424,14 @@ function placeOrder() {
 
     alert("Order placed successfully!");
     
+    // Reset UI
     cart = {};
     deliveryLat = null; 
     deliveryLng = null; 
     document.getElementById('checkoutModal').style.display = "none";
     document.getElementById('manualAddress').value = "";
-    document.getElementById('exactAddress').value = "";
+    document.getElementById('flatNumber').value = "";
+    document.getElementById('landmark').value = "";
     document.getElementById('specificAddressContainer').style.display = "none";
     document.getElementById('manualAddressContainer').style.display = "block";
     document.getElementById('gpsText').innerText = "Set exact map location";
@@ -425,7 +440,7 @@ function placeOrder() {
 }
 
 /* =========================
-   ORDER HISTORY
+   ORDER HISTORY & TRACKING
 ========================= */
 function openOrders() {
     document.getElementById('ordersModal').style.display = "flex";
@@ -470,9 +485,6 @@ window.onclick = e => {
     }
 };
 
-/* =========================
-   LIVE ROUTING & MAP LOGIC
-========================= */
 let map, deliveryMarker, userMarker;
 let directionsService, directionsRenderer;
 let unsubscribeTracking;
@@ -488,7 +500,6 @@ function trackOrder(orderId, destinationLat, destinationLng) {
         dropOffLocation = { lat: destinationLat, lng: destinationLng };
     } else {
         dropOffLocation = { lat: 17.385, lng: 78.4867 }; 
-        console.warn("No GPS location saved for this order. Using default.");
     }
     
     initializeMapTracking(orderId, dropOffLocation);
