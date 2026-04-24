@@ -1,111 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
 <title>Chicken Delivery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{margin:0;font-family:sans-serif;background:#fafafa}
+body{margin:0;font-family:Arial;background:#f5f5f5}
 
-/* HEADER */
 header{
-display:flex;align-items:center;
-padding:12px;background:white;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
-position:sticky;top:0;z-index:100;
+background:#16a34a;
+color:white;
+padding:15px;
+display:flex;
+align-items:center;
+gap:10px;
 }
 
 /* SIDEBAR */
-.sidebar{
-position:fixed;left:-260px;top:0;
-width:260px;height:100%;
-background:white;transition:0.3s;
-z-index:200;
+.menu{
+position:fixed;
+left:-260px;
+top:0;
+width:260px;
+height:100%;
+background:white;
+transition:0.3s;
+z-index:1000;
 }
-.sidebar.open{left:0}
+.menu.open{left:0}
 
-.menu-item{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
+.menu-header{
+background:#16a34a;
+color:white;
+padding:20px;
+}
+
+.menu-item{
+padding:15px;
+border-bottom:1px solid #eee;
+cursor:pointer;
+}
 
 /* OVERLAY */
-.overlay{
-position:fixed;width:100%;height:100%;
-background:rgba(0,0,0,0.4);
-display:none;z-index:150;
-}
-
-/* ITEM CARD (VERTICAL LIKE SWIGGY) */
-.item{
-display:flex;
-justify-content:space-between;
-background:white;
-margin:10px;
-padding:12px;
-border-radius:14px;
-box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-.info{width:60%}
-.name{font-weight:bold;font-size:15px}
-.price{color:#16a34a;font-weight:bold;margin-top:5px}
-
-.right{width:35%;text-align:center}
-.right img{
+#overlay{
+position:fixed;
 width:100%;
-height:110px;
-object-fit:cover;
+height:100%;
+background:rgba(0,0,0,0.4);
+display:none;
+}
+
+/* CONTENT */
+.container{padding:15px}
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:10px;
+}
+
+.card{
+background:white;
+padding:10px;
 border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 /* BUTTON */
-.add{
-background:white;
-border:1px solid #ff4d4d;
-color:#ff4d4d;
-padding:5px 15px;
-border-radius:10px;
-font-weight:bold;
-cursor:pointer;
-margin-top:-20px;
+button{
+padding:8px;
+border:none;
+border-radius:6px;
+background:#16a34a;
+color:white;
+margin-top:5px;
 }
 
-/* QTY */
-.qty{
-display:flex;
-justify-content:center;
-gap:10px;
-margin-top:-20px;
-}
-.qty button{
-background:#16a34a;color:white;border:none;
-border-radius:5px;padding:3px 8px;
-}
-
-/* CART BAR */
-.cartbar{
+/* CART */
+.cart{
 position:fixed;
-bottom:15px;
+bottom:20px;
 left:50%;
 transform:translateX(-50%);
 background:#16a34a;
 color:white;
-padding:12px 20px;
-border-radius:25px;
+padding:10px 20px;
+border-radius:30px;
 display:none;
 }
 
-/* PAGE */
-.page{display:none}
-.active{display:block;padding:10px}
+/* MODAL */
+.modal{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.5);
+display:none;
+justify-content:center;
+align-items:center;
+}
 
-/* MAP */
-#map{height:300px;border-radius:10px}
-
-/* CARD */
-.card{
+.box{
 background:white;
-padding:10px;
-margin:10px;
+padding:20px;
 border-radius:10px;
+width:90%;
+max-width:400px;
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin:6px 0;
+border-radius:6px;
+border:1px solid #ccc;
 }
 </style>
 </head>
@@ -114,236 +124,253 @@ border-radius:10px;
 
 <header>
 <span onclick="openMenu()">☰</span>
-<div style="flex:1;text-align:center">Chicken Delivery</div>
-<span id="authBtn" onclick="handleAuth()">Login</span>
+Chicken Delivery
 </header>
 
-<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+<div id="overlay" onclick="closeMenu()"></div>
 
-<div class="sidebar" id="sidebar">
-<div id="userName" class="menu-item">Guest</div>
-<div class="menu-item" onclick="go('home')">Home</div>
-<div class="menu-item" onclick="go('orders')">Orders</div>
-<div id="logoutBtn" class="menu-item" onclick="logout()" style="display:none">Logout</div>
+<!-- SIDEBAR -->
+<div id="menu" class="menu">
+<div class="menu-header">
+<h3 id="userName">Guest</h3>
+<p id="userEmail">Not logged in</p>
 </div>
 
-<!-- HOME -->
-<div id="home" class="page active">
-<div id="items"></div>
+<div id="loginBtn" class="menu-item" onclick="login()">🔐 Login with Google</div>
+<div class="menu-item" onclick="openOrders()">📦 My Orders</div>
+<div id="logoutBtn" class="menu-item" onclick="logout()" style="display:none">🚪 Logout</div>
 </div>
+
+<div class="container">
+<h3>Menu</h3>
+<div id="itemsList" class="grid"></div>
+</div>
+
+<div id="cartBtn" class="cart" onclick="openCart()"></div>
 
 <!-- CART -->
-<div id="cartPage" class="page">
+<div id="cartModal" class="modal">
+<div class="box">
 <h3>Cart</h3>
 <div id="cartItems"></div>
+<button onclick="checkout()">Next</button>
+</div>
+</div>
 
-<input id="address" placeholder="Address">
+<!-- CHECKOUT -->
+<div id="checkoutModal" class="modal">
+<div class="box">
+<input id="address" placeholder="Enter Address">
 <select id="payment">
-<option>Cash on Delivery</option>
-<option>Pay Online</option>
+<option value="cod">Cash on Delivery</option>
+<option value="online">Pay Online</option>
 </select>
-
-<button onclick="placeOrder()">Place Order</button>
+<button onclick="placeOrder()">Confirm Order</button>
+</div>
 </div>
 
 <!-- ORDERS -->
-<div id="orders" class="page">
+<div id="ordersModal" class="modal">
+<div class="box">
 <h3>Your Orders</h3>
-<div id="orderList"></div>
+<div id="ordersList"></div>
+</div>
 </div>
 
-<!-- TRACK -->
-<div id="trackModal" class="page">
+<!-- TRACKING -->
+<div id="mapModal" class="modal">
+<div class="box">
 <h3>Live Tracking</h3>
-<div id="map"></div>
+<div id="map" style="height:300px;"></div>
+</div>
 </div>
 
-<div id="cartBar" class="cartbar" onclick="go('cartPage')"></div>
-
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
+<!-- Google Maps -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
+
 <script>
-firebase.initializeApp({
+const config={
 apiKey:"AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
 authDomain:"chicken-delivery-app-9e4f6.firebaseapp.com",
 projectId:"chicken-delivery-app-9e4f6"
-});
+};
 
+firebase.initializeApp(config);
 const db=firebase.firestore();
 const auth=firebase.auth();
 
-/* AUTH */
-function handleAuth(){
-if(auth.currentUser) logout();
-else login();
-}
-
-function login(){
-auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-}
-
-function logout(){
-auth.signOut();
-}
-
-auth.onAuthStateChanged(user=>{
-if(user){
-authBtn.innerText="Logout";
-logoutBtn.style.display="block";
-userName.innerText=user.displayName;
-loadOrders(user.uid);
-}else{
-authBtn.innerText="Login";
-logoutBtn.style.display="none";
-userName.innerText="Guest";
-}
-});
+let cart=[];
+let user=null;
+let map=null;
+let marker=null;
 
 /* MENU */
-function openMenu(){sidebar.classList.add("open");overlay.style.display="block";}
-function closeMenu(){sidebar.classList.remove("open");overlay.style.display="none";}
+function openMenu(){menu.classList.add("open");overlay.style.display="block";}
+function closeMenu(){menu.classList.remove("open");overlay.style.display="none";}
 
-/* NAV */
-function go(p){
-document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
-document.getElementById(p).classList.add("active");
-closeMenu();
+/* AUTH */
+function login(){
+const provider=new firebase.auth.GoogleAuthProvider();
+auth.signInWithPopup(provider);
 }
+function logout(){auth.signOut();}
 
-/* CART */
-let cart={};
-
-function add(id,name,price){
-if(!cart[id]) cart[id]={name,price,qty:1};
-else cart[id].qty++;
-render();
-}
-
-function inc(id){cart[id].qty++;render();}
-function dec(id){cart[id].qty--;if(cart[id].qty<=0) delete cart[id];render();}
-
-function render(){
-document.querySelectorAll(".item").forEach(el=>{
-let id=el.dataset.id;
-let c=cart[id];
-let box=el.querySelector(".action");
-
-if(c){
-box.innerHTML=`<div class="qty">
-<button onclick="dec('${id}')">-</button>${c.qty}
-<button onclick="inc('${id}')">+</button>
-</div>`;
+auth.onAuthStateChanged(u=>{
+user=u;
+if(u){
+userName.innerText=u.displayName;
+userEmail.innerText=u.email;
+loginBtn.style.display="none";
+logoutBtn.style.display="block";
 }else{
-box.innerHTML=`<button class="add" onclick="add('${id}','${el.dataset.name}',${el.dataset.price})">ADD</button>`;
+userName.innerText="Guest";
+userEmail.innerText="Not logged in";
+loginBtn.style.display="block";
+logoutBtn.style.display="none";
 }
 });
 
-let total=0,count=0;
-for(let k in cart){
-total+=cart[k].price*cart[k].qty;
-count+=cart[k].qty;
-}
-
-if(count){
-cartBar.style.display="block";
-cartBar.innerText=`${count} items • ₹${total}`;
-}else cartBar.style.display="none";
-
-cartItems.innerHTML="";
-for(let k in cart){
-let i=cart[k];
-cartItems.innerHTML+=`<div class="card">${i.name} x ${i.qty}</div>`;
-}
-}
-
-/* ITEMS */
+/* LOAD ITEMS (SYNC FROM ADMIN) */
 db.collection("items").onSnapshot(snap=>{
-items.innerHTML="";
+itemsList.innerHTML="";
 snap.forEach(doc=>{
 let i=doc.data();
 
-items.innerHTML+=`
-<div class="item" data-id="${doc.id}" data-name="${i.name}" data-price="${i.price}">
-<div class="info">
-<div class="name">${i.name}</div>
-<div class="price">₹${i.price}</div>
-</div>
-<div class="right">
-<img src="${i.image}">
-<div class="action"></div>
-</div>
+itemsList.innerHTML+=`
+<div class="card">
+<b>${i.name}</b><br>₹${i.price}
+<button onclick="add('${i.name}',${i.price})">ADD</button>
 </div>`;
 });
-render();
 });
 
-/* ORDER */
+/* CART */
+function add(name,price){
+cart.push({name,price});
+cartBtn.style.display="block";
+cartBtn.innerText=`${cart.length} items`;
+}
+
+function openCart(){
+cartModal.style.display="flex";
+cartItems.innerHTML=cart.map(i=>i.name).join("<br>");
+}
+
+function checkout(){
+cartModal.style.display="none";
+checkoutModal.style.display="flex";
+}
+
+/* PLACE ORDER */
 function placeOrder(){
-let user=auth.currentUser;
 if(!user){alert("Login first");return;}
 
 db.collection("orders").add({
 userId:user.uid,
 userName:user.displayName,
-items:Object.values(cart),
+items:cart,
 address:address.value,
 payment:payment.value,
 status:"pending",
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 });
 
-cart={};
-render();
-go("orders");
+alert("Order placed!");
+
+cart=[];
+cartBtn.style.display="none";
+checkoutModal.style.display="none";
 }
 
-/* ORDERS */
-function loadOrders(uid){
+/* LOAD USER ORDERS (FILTERED) */
+function openOrders(){
+ordersModal.style.display="flex";
+
+if(!user){
+ordersList.innerHTML="Login to view orders";
+return;
+}
+
 db.collection("orders")
-.where("userId","==",uid)
-.orderBy("createdAt","desc")
+.where("userId","==",user.uid)
 .onSnapshot(snap=>{
-orderList.innerHTML="";
+
+ordersList.innerHTML="";
+
 snap.forEach(doc=>{
 let o=doc.data();
 
-orderList.innerHTML+=`
-<div class="card">
-<b>${doc.id.slice(0,6)}</b><br>
-${o.status}<br>
-<button onclick="track('${doc.id}')">Track</button>
+ordersList.innerHTML+=`
+<div style="border:1px solid #ddd;padding:10px;margin:5px;border-radius:6px">
+<b>Order:</b> ${doc.id.slice(0,6)}<br>
+<b>Status:</b> ${o.status || "pending"}<br>
+
+${o.status==="out for delivery"
+? `<button onclick="trackOrder('${doc.id}')">Track Order</button>`
+: ""}
+
 </div>`;
 });
 });
 }
 
-/* LIVE TRACK */
-let map,marker,unsub;
+/* TRACK ORDER LIVE */
+function trackOrder(orderId){
+mapModal.style.display="flex";
 
-function track(id){
-go("trackModal");
-
-map=new google.maps.Map(document.getElementById("map"),{
-zoom:15,center:{lat:0,lng:0}
-});
-
-marker=new google.maps.Marker({map});
-
-/* REALTIME FROM FIRESTORE */
-unsub=db.collection("orders").doc(id)
+db.collection("orders").doc(orderId)
 .onSnapshot(doc=>{
 let d=doc.data();
-if(d.deliveryLocation){
-marker.setPosition(d.deliveryLocation);
-map.setCenter(d.deliveryLocation);
+if(!d.location) return;
+
+let lat=d.location.lat;
+let lng=d.location.lng;
+
+if(!map){
+map=new google.maps.Map(document.getElementById("map"),{
+center:{lat,lng},
+zoom:15
+});
+marker=new google.maps.Marker({
+position:{lat,lng},
+map:map
+});
+}else{
+marker.setPosition({lat,lng});
+map.setCenter({lat,lng});
 }
 });
 }
-</script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
+/* CLOSE MODALS */
+window.onclick=e=>{
+if(e.target.classList.contains("modal")){
+e.target.style.display="none";
+}
+};
+
+/* DOM */
+const menu=document.getElementById("menu");
+const overlay=document.getElementById("overlay");
+const userName=document.getElementById("userName");
+const userEmail=document.getElementById("userEmail");
+const loginBtn=document.getElementById("loginBtn");
+const logoutBtn=document.getElementById("logoutBtn");
+const cartBtn=document.getElementById("cartBtn");
+const cartModal=document.getElementById("cartModal");
+const checkoutModal=document.getElementById("checkoutModal");
+const ordersModal=document.getElementById("ordersModal");
+const mapModal=document.getElementById("mapModal");
+const cartItems=document.getElementById("cartItems");
+const ordersList=document.getElementById("ordersList");
+const address=document.getElementById("address");
+const payment=document.getElementById("payment");
+</script>
 
 </body>
 </html>
