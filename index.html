@@ -12,7 +12,7 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 .menu { position: fixed; left: -260px; top: 0; width: 260px; height: 100%; background: white; transition: .3s; z-index: 1000; }
 .menu.open { left: 0; }
 .menu-header { background: #16a34a; color: white; padding: 20px; }
-.menu-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+.menu-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 10px;}
 #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 900; }
 
 .container { padding: 15px; padding-bottom: 80px; }
@@ -40,7 +40,7 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 input, select, textarea { box-sizing: border-box; width:100%; padding:14px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: Arial; }
-.btn-primary { width: 100%; background: #16a34a; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+.btn-primary { width: 100%; background: #16a34a; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 10px;}
 .btn-location { width: 100%; background: #eefce9; color: #16a34a; border: 1px solid #16a34a; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
 /* TRACKING UI */
@@ -67,6 +67,7 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
         <h3 id="userName" style="margin:0 0 5px 0;">Guest</h3>
         <p id="userEmail" style="margin:0; font-size: 14px; opacity: 0.8;">Not logged in</p>
     </div>
+    <div class="menu-item" onclick="openProfile()">👤 My Profile</div>
     <div class="menu-item" onclick="openOrders()">📦 My Orders</div>
     <div class="menu-item" onclick="logout()">🚪 Logout</div>
 </div>
@@ -79,6 +80,17 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
 <div id="cartBtn" class="cart-bar" style="display:none" onclick="openCart()">
     <span id="cartCount"></span>
     <span>View Cart ➔</span>
+</div>
+
+<div id="profileModal" class="modal">
+    <div class="box" style="height: auto; margin-top: auto; border-radius: 20px 20px 0 0;">
+        <h3 style="margin-top:0;">My Contact Details</h3>
+        <p style="font-size: 14px; color: #666; margin-top: 0;">Save your details for faster checkout.</p>
+        <input id="profileName" placeholder="Full Name">
+        <input id="profilePhone" type="tel" placeholder="Phone Number (10 digits)">
+        <button class="btn-primary" onclick="saveProfile()">Save Details</button>
+        <button onclick="document.getElementById('profileModal').style.display='none'" style="width: 100%; background: #eee; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer;">Cancel</button>
+    </div>
 </div>
 
 <div id="cartModal" class="modal">
@@ -115,7 +127,14 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
             <textarea id="manualAddress" rows="3" placeholder="Enter Full Address (House No, Building, Street, Area, Landmark)" style="resize: none;"></textarea>
         </div>
 
-        <select id="payment" style="margin-top: 10px;" onchange="handlePaymentSelection()">
+        <div class="divider">CONTACT DETAILS</div>
+        <div style="display: flex; gap: 10px;">
+            <input id="checkoutName" placeholder="Customer Name *" style="flex: 1;">
+            <input id="checkoutPhone" type="tel" placeholder="Phone Number *" style="flex: 1;">
+        </div>
+
+        <div class="divider">PAYMENT</div>
+        <select id="payment" onchange="handlePaymentSelection()">
             <option value="">Select Payment Method</option>
             <option value="COD">Cash on Delivery</option>
             <option value="ONLINE">Pay Online (UPI)</option>
@@ -198,13 +217,13 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const storage = firebase.storage();
 
-// Variables for Dynamic Payment Settings
+// Variables
 let vendorUpiId = "";
 let vendorQrUrl = "";
-
 let cart = {};
 let itemsCache = {};
 let user = null;
+let userProfile = { name: "", phone: "" }; // Stores the loaded contact details
 let deliveryLat = null;
 let deliveryLng = null;
 
@@ -213,6 +232,9 @@ function closeMenu() { document.getElementById('menu').classList.remove("open");
 document.getElementById('loginBtn').onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
 function logout() { auth.signOut(); closeMenu(); }
 
+/* =========================
+   AUTH & USER PROFILE
+========================= */
 auth.onAuthStateChanged(u => {
     user = u;
     const loginBtn = document.getElementById('loginBtn');
@@ -220,12 +242,43 @@ auth.onAuthStateChanged(u => {
         loginBtn.innerText = "Logout"; loginBtn.onclick = logout;
         document.getElementById('userName').innerText = u.displayName;
         document.getElementById('userEmail').innerText = u.email;
+        
+        // Load User's Contact Profile
+        db.collection("users").doc(u.uid).onSnapshot(doc => {
+            if(doc.exists) {
+                userProfile = doc.data();
+            } else {
+                userProfile = { name: u.displayName, phone: "" };
+            }
+            // Update Profile Inputs if they are open
+            document.getElementById('profileName').value = userProfile.name || "";
+            document.getElementById('profilePhone').value = userProfile.phone || "";
+        });
+
     } else {
         loginBtn.innerText = "Login"; loginBtn.onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
         document.getElementById('userName').innerText = "Guest";
         document.getElementById('userEmail').innerText = "Not logged in";
+        userProfile = { name: "", phone: "" };
     }
 });
+
+function openProfile() {
+    if(!user) { alert("Please login first"); return; }
+    closeMenu();
+    document.getElementById('profileModal').style.display = "flex";
+}
+
+function saveProfile() {
+    if(!user) return;
+    const name = document.getElementById('profileName').value.trim();
+    const phone = document.getElementById('profilePhone').value.trim();
+    
+    db.collection("users").doc(user.uid).set({ name, phone }, { merge: true }).then(() => {
+        alert("Profile saved!");
+        document.getElementById('profileModal').style.display = "none";
+    });
+}
 
 /* =========================
    LOAD VENDOR PAYMENT SETTINGS
@@ -235,7 +288,6 @@ db.collection("settings").doc("payment").onSnapshot(doc => {
         let data = doc.data();
         vendorUpiId = data.upiId || "";
         vendorQrUrl = data.qrUrl || "https://via.placeholder.com/150?text=No+QR+Found";
-        
         const qrImage = document.getElementById('paymentQrImage');
         if(qrImage) qrImage.src = vendorQrUrl;
     }
@@ -312,8 +364,25 @@ function updateCart() {
 }
 
 function openCart() { document.getElementById('cartModal').style.display = "flex"; }
-function checkout() { document.getElementById('cartModal').style.display = "none"; document.getElementById('checkoutModal').style.display = "flex"; }
 
+function checkout() { 
+    if(!user) { alert("Please login first"); return; }
+    document.getElementById('cartModal').style.display = "none"; 
+    
+    // Auto-fill Contact Details
+    document.getElementById('checkoutName').value = userProfile.name || user.displayName || "";
+    document.getElementById('checkoutPhone').value = userProfile.phone || "";
+
+    // Reset payment dropdown just in case they came back from cart
+    document.getElementById('payment').value = "";
+    document.getElementById('upiPaymentSection').style.display = "none";
+
+    document.getElementById('checkoutModal').style.display = "flex"; 
+}
+
+/* =========================
+   MAP & LOCATION PICKER
+========================= */
 let pickerMap, geocoder;
 function openLocationPicker() {
     document.getElementById('locationPickerModal').style.display = "flex";
@@ -361,12 +430,14 @@ function confirmPickedLocation() {
     document.getElementById('displayGeocodedAddress').innerText = fetchedAddress;
 }
 
+/* =========================
+   PAYMENT LOGIC (BUG FIXED)
+========================= */
 function handlePaymentSelection() {
     const paymentMethod = document.getElementById('payment').value;
     const upiSection = document.getElementById('upiPaymentSection');
     
     if (paymentMethod === "ONLINE") {
-        // Failsafe: If admin hasn't set up the UPI details yet
         if(!vendorUpiId) {
             alert("Online payment is currently unavailable. Please select Cash on Delivery.");
             document.getElementById('payment').value = "";
@@ -375,12 +446,18 @@ function handlePaymentSelection() {
         }
 
         upiSection.style.display = "block";
-        let total = 0;
-        for(let id in cart) { total += cart[id].price * cart[id].qty; }
-        document.getElementById('upiAmountText').innerText = total;
+        
+        let totalDisplay = 0;
+        for(let id in cart) { totalDisplay += cart[id].price * cart[id].qty; }
+        document.getElementById('upiAmountText').innerText = totalDisplay;
 
-        const upiLink = `upi://pay?pa=${vendorUpiId}&pn=Chicken%20Delivery&am=${total}&cu=INR`;
-        document.getElementById('upiAppBtn').onclick = () => { window.location.href = upiLink; };
+        // FIXED: The onclick function now recalculates the total EXACTLY when clicked!
+        document.getElementById('upiAppBtn').onclick = () => { 
+            let currentTotal = 0;
+            for(let id in cart) { currentTotal += cart[id].price * cart[id].qty; }
+            const upiLink = `upi://pay?pa=${vendorUpiId}&pn=Chicken%20Delivery&am=${currentTotal}&cu=INR`;
+            window.location.href = upiLink; 
+        };
     } else {
         upiSection.style.display = "none";
     }
@@ -390,6 +467,11 @@ function handlePaymentSelection() {
 async function placeOrder() {
     if(!user) { alert("Please login first"); return; }
     
+    // Check Contact Details
+    const orderName = document.getElementById('checkoutName').value.trim();
+    const orderPhone = document.getElementById('checkoutPhone').value.trim();
+    if(!orderName || !orderPhone) { alert("Please enter your Name and Phone Number."); return; }
+
     let finalAddressText = "";
     const manualInput = document.getElementById('manualAddress').value;
     const flatNum = document.getElementById('flatNumber').value;
@@ -424,11 +506,13 @@ async function placeOrder() {
     btn.style.opacity = "0.7";
 
     try {
+        // Silently update their profile with the latest phone number they typed
+        db.collection("users").doc(user.uid).set({ name: orderName, phone: orderPhone }, { merge: true });
+
         if (payment === "ONLINE" && fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const storageRef = storage.ref();
             const screenshotRef = storageRef.child(`payment_screenshots/${user.uid}_${Date.now()}_${file.name}`);
-            
             await screenshotRef.put(file);
             screenshotUrl = await screenshotRef.getDownloadURL();
         }
@@ -442,7 +526,8 @@ async function placeOrder() {
 
         await db.collection("orders").add({
             userId: user.uid,
-            userName: user.displayName,
+            userName: orderName,
+            userPhone: orderPhone, // Added Phone to order database!
             items,
             total,
             address: finalAddressText,
@@ -568,7 +653,7 @@ function initializeMapTracking(orderId, dropOffLocation) {
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry,places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry,places"></script>
 
 </body>
 </html>
