@@ -7,10 +7,8 @@
 <style>
 body { margin: 0; font-family: Arial; background: #f4f4f5; }
 
-/* HEADER */
+/* HEADER & MENU */
 header { background: #16a34a; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-
-/* MENU SIDEBAR */
 .menu { position: fixed; left: -260px; top: 0; width: 260px; height: 100%; background: white; transition: .3s; z-index: 1000; }
 .menu.open { left: 0; }
 .menu-header { background: #16a34a; color: white; padding: 20px; }
@@ -19,84 +17,31 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 
 .container { padding: 15px; padding-bottom: 80px; }
 
-/* =========================================
-   PREMIUM MENU ITEM REDESIGN (SWIGGY STYLE)
-========================================= */
-.menu-card {
-    display: flex;
-    justify-content: space-between;
-    background: white;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 16px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.04);
-}
-
-.menu-info {
-    flex: 1;
-    padding-right: 15px;
-}
-
+/* MENU ITEMS */
+.menu-card { display: flex; justify-content: space-between; background: white; padding: 15px; margin-bottom: 15px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
+.menu-info { flex: 1; padding-right: 15px; }
 .menu-title { font-size: 17px; font-weight: bold; color: #333; margin-bottom: 4px; }
 .menu-price { font-size: 15px; font-weight: bold; color: #555; margin-bottom: 6px; }
 .menu-desc { font-size: 13px; color: #888; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.menu-img-wrapper { position: relative; width: 130px; height: 130px; flex-shrink: 0; }
+.menu-img-wrapper img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
 
-.menu-img-wrapper {
-    position: relative;
-    width: 130px;
-    height: 130px;
-    flex-shrink: 0;
-}
-
-.menu-img-wrapper img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 12px;
-}
-
-/* Floating Add Button */
-.ctrl-wrapper {
-    position: absolute;
-    bottom: -12px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
-    border: 1px solid #16a34a;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    overflow: hidden;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    height: 36px;
-}
-
-.btn-add-initial {
-    background: white; color: #16a34a; border: none; padding: 0 25px;
-    font-weight: 800; font-size: 15px; cursor: pointer; height: 100%;
-}
-
-.qty-controls {
-    display: flex; align-items: center; width: 100%; justify-content: space-between;
-}
-.qty-controls button {
-    background: transparent; color: #16a34a; border: none; padding: 0 12px;
-    font-size: 18px; font-weight: bold; cursor: pointer; height: 100%;
-}
+/* ADD BUTTON */
+.ctrl-wrapper { position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%); background: white; border: 1px solid #16a34a; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); overflow: hidden; white-space: nowrap; display: flex; align-items: center; height: 36px; }
+.btn-add-initial { background: white; color: #16a34a; border: none; padding: 0 25px; font-weight: 800; font-size: 15px; cursor: pointer; height: 100%; }
+.qty-controls { display: flex; align-items: center; width: 100%; justify-content: space-between; }
+.qty-controls button { background: transparent; color: #16a34a; border: none; padding: 0 12px; font-size: 18px; font-weight: bold; cursor: pointer; height: 100%; }
 .qty-controls span { font-weight: bold; color: #16a34a; font-size: 15px; }
 
-
-/* BOTTOM CART BAR */
+/* CART BAR & MODALS */
 .cart-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: #16a34a; color: white; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; z-index: 50; }
-
-/* MODALS */
 .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: flex-end; z-index: 9999; flex-direction: column; }
 .box { background: white; width: 100%; height: 85%; border-radius: 20px 20px 0 0; padding: 20px; overflow-y: auto; animation: slideUp .3s ease; position: relative; box-sizing: border-box; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-input, select { box-sizing: border-box; width:100%; padding:14px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; }
+input, select { box-sizing: border-box; width:100%; padding:14px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; }
 .btn-primary { width: 100%; background: #16a34a; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+.btn-location { width: 100%; background: #eefce9; color: #16a34a; border: 1px solid #16a34a; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
 /* TRACKING UI */
 #trackingPanel { position: absolute; bottom: 0; left: 0; width: 100%; background: white; padding: 20px; border-radius: 20px 20px 0 0; box-shadow: 0 -3px 20px rgba(0,0,0,0.15); box-sizing: border-box; z-index: 10; }
@@ -147,6 +92,11 @@ input, select { box-sizing: border-box; width:100%; padding:14px; margin-bottom:
 <div id="checkoutModal" class="modal">
     <div class="box">
         <h3 style="margin-top:0;">Delivery Details</h3>
+        
+        <button class="btn-location" onclick="fetchUserLocation()">
+            <span id="gpsIcon">📍</span> <span id="gpsText">Use my current GPS location</span>
+        </button>
+
         <input id="address" placeholder="House/Flat No, Building, Area">
         <select id="payment">
             <option value="">Select Payment Method</option>
@@ -166,9 +116,7 @@ input, select { box-sizing: border-box; width:100%; padding:14px; margin-bottom:
 
 <div id="mapModal" class="modal">
     <div class="box" style="padding: 0; overflow: hidden; background: #eee;">
-        
         <div id="map" style="height: 100%; width: 100%;"></div>
-
         <div id="trackingPanel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h3 style="margin: 0; font-size: 18px;">Order on the way 🚴</h3>
@@ -203,12 +151,15 @@ let cart = {};
 let itemsCache = {};
 let user = null;
 
+// New variables to hold exact delivery coordinates
+let deliveryLat = null;
+let deliveryLng = null;
+
 /* =========================
    UI & AUTH
 ========================= */
 function openMenu() { document.getElementById('menu').classList.add("open"); document.getElementById('overlay').style.display = "block"; }
 function closeMenu() { document.getElementById('menu').classList.remove("open"); document.getElementById('overlay').style.display = "none"; }
-
 document.getElementById('loginBtn').onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
 function logout() { auth.signOut(); closeMenu(); }
 
@@ -229,16 +180,14 @@ auth.onAuthStateChanged(u => {
 });
 
 /* =========================
-   MENU RENDERING (REDESIGN)
+   MENU & CART LOGIC
 ========================= */
 db.collection("items").onSnapshot(snap => {
     document.getElementById('itemsList').innerHTML = "";
     itemsCache = {};
-
     snap.forEach(doc => {
         let i = doc.data();
         itemsCache[doc.id] = i;
-
         document.getElementById('itemsList').innerHTML += `
         <div class="menu-card">
             <div class="menu-info">
@@ -247,7 +196,6 @@ db.collection("items").onSnapshot(snap => {
                 <div class="menu-price">₹${i.price}</div>
                 <div class="menu-desc">Freshly prepared, juicy, and perfectly spiced.</div>
             </div>
-            
             <div class="menu-img-wrapper">
                 <img src="${i.image}" onerror="this.src='https://via.placeholder.com/150'">
                 <div class="ctrl-wrapper" id="ctrl-${doc.id}"></div>
@@ -263,26 +211,18 @@ function dec(id) { cart[id].qty--; if(cart[id].qty <= 0) delete cart[id]; render
 
 function render() {
     let total = 0, count = 0;
-
     Object.keys(itemsCache).forEach(id => {
         let el = document.getElementById("ctrl-" + id);
         if(!el) return;
         let c = cart[id];
-
         if(c) {
-            el.innerHTML = `
-            <div class="qty-controls">
-                <button onclick="dec('${id}')">-</button>
-                <span>${c.qty}</span>
-                <button onclick="inc('${id}')">+</button>
-            </div>`;
+            el.innerHTML = `<div class="qty-controls"><button onclick="dec('${id}')">-</button><span>${c.qty}</span><button onclick="inc('${id}')">+</button></div>`;
         } else {
             el.innerHTML = `<button class="btn-add-initial" onclick="add('${id}')">ADD</button>`;
         }
     });
 
     for(let id in cart) { total += cart[id].price * cart[id].qty; count += cart[id].qty; }
-
     const cartBtn = document.getElementById('cartBtn');
     cartBtn.style.display = count ? "flex" : "none";
     document.getElementById('cartCount').innerText = `${count} ITEM${count > 1 ? 'S' : ''} | ₹${total}`;
@@ -293,12 +233,10 @@ function updateCart() {
     const cartItems = document.getElementById('cartItems');
     cartItems.innerHTML = "";
     let total = 0;
-
     for(let id in cart) {
         let c = cart[id];
         let sub = c.price * c.qty;
         total += sub;
-
         cartItems.innerHTML += `
         <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:15px;">
             <div style="display:flex; align-items:center; gap: 10px;">
@@ -312,10 +250,34 @@ function updateCart() {
 }
 
 /* =========================
-   ORDERING & MODALS
+   CHECKOUT & GPS CAPTURE
 ========================= */
 function openCart() { document.getElementById('cartModal').style.display = "flex"; }
 function checkout() { document.getElementById('cartModal').style.display = "none"; document.getElementById('checkoutModal').style.display = "flex"; }
+
+// GPS FUNCTION
+function fetchUserLocation() {
+    const gpsText = document.getElementById('gpsText');
+    const gpsIcon = document.getElementById('gpsIcon');
+    
+    gpsText.innerText = "Locating you...";
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            deliveryLat = pos.coords.latitude;
+            deliveryLng = pos.coords.longitude;
+            
+            gpsIcon.innerText = "✅";
+            gpsText.innerText = "Exact location captured!";
+            document.getElementById('address').placeholder = "Add floor/door number (optional)";
+        }, err => {
+            gpsIcon.innerText = "❌";
+            gpsText.innerText = "Failed. Please allow location access.";
+        });
+    } else {
+        alert("GPS not supported on this browser.");
+    }
+}
 
 function placeOrder() {
     if(!user) { alert("Please login first"); return; }
@@ -323,7 +285,8 @@ function placeOrder() {
     const address = document.getElementById('address').value;
     const payment = document.getElementById('payment').value;
     
-    if(!address) { alert("Enter delivery address"); return; }
+    // We require either a typed address OR a captured GPS coordinate
+    if(!address && !deliveryLat) { alert("Please enter an address or click 'Use my current GPS location'"); return; }
     if(!payment) { alert("Select payment method"); return; }
 
     let items = [];
@@ -334,12 +297,14 @@ function placeOrder() {
         total += cart[id].price * cart[id].qty;
     }
 
+    // Include the exact GPS coordinates in the order database
     db.collection("orders").add({
         userId: user.uid,
         userName: user.displayName,
         items,
         total,
-        address: address,
+        address: address || "GPS Location Provided",
+        deliveryLocation: (deliveryLat && deliveryLng) ? { lat: deliveryLat, lng: deliveryLng } : null,
         payment: payment,
         status: "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -347,11 +312,18 @@ function placeOrder() {
 
     alert("Order placed successfully!");
     cart = {};
+    deliveryLat = null; // reset
+    deliveryLng = null; // reset
     document.getElementById('checkoutModal').style.display = "none";
     document.getElementById('address').value = "";
+    document.getElementById('gpsText').innerText = "Use my current GPS location";
+    document.getElementById('gpsIcon').innerText = "📍";
     render();
 }
 
+/* =========================
+   ORDER HISTORY
+========================= */
 function openOrders() {
     document.getElementById('ordersModal').style.display = "flex";
     closeMenu();
@@ -368,8 +340,13 @@ function openOrders() {
             let itemsText = o.items ? o.items.map(i => `${i.qty}x ${i.name}`).join(", ") : "No items";
             let color = o.status === "delivered" ? "#16a34a" : (o.status === "out for delivery" ? "#2563eb" : "#f59e0b");
             
+            // Extract the saved coordinates from the database safely
+            let savedLat = o.deliveryLocation ? o.deliveryLocation.lat : null;
+            let savedLng = o.deliveryLocation ? o.deliveryLocation.lng : null;
+
+            // Pass the exact saved coordinates to the tracking function
             let trackBtn = o.status === "out for delivery" 
-                ? `<button onclick="trackOrder('${o.id}')" style="margin-top:12px; width:100%; padding:12px; background:#eefce9; color:#16a34a; border:1px solid #16a34a; border-radius:8px; cursor:pointer; font-weight:bold; font-size:15px;">📍 Track Live Order</button>` : "";
+                ? `<button onclick="trackOrder('${o.id}', ${savedLat}, ${savedLng})" style="margin-top:12px; width:100%; padding:12px; background:#eefce9; color:#16a34a; border:1px solid #16a34a; border-radius:8px; cursor:pointer; font-weight:bold; font-size:15px;">📍 Track Live Order</button>` : "";
 
             document.getElementById('ordersList').innerHTML += `
             <div style="background:#fff; padding:15px; margin-bottom:15px; border-radius:12px; border: 1px solid #eaeaea;">
@@ -392,61 +369,58 @@ window.onclick = e => {
     }
 };
 
-
 /* =========================
    LIVE ROUTING & MAP LOGIC
 ========================= */
 let map, deliveryMarker, userMarker;
 let directionsService, directionsRenderer;
 let unsubscribeTracking;
-let routeDrawn = false; // Prevents API spam
+let routeDrawn = false; 
 
-function trackOrder(orderId) {
+// We now accept destinationLat and destinationLng directly from the order history
+function trackOrder(orderId, destinationLat, destinationLng) {
     document.getElementById('mapModal').style.display = "flex";
-    document.getElementById('statusText').innerText = "Locating your address...";
+    document.getElementById('statusText').innerText = "Connecting to driver...";
     routeDrawn = false;
 
-    // 1. Get User's Exact Location First
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => {
-            const userPos = { lat: position.coords.latitude, lng: position.coords.longitude };
-            initializeMapTracking(orderId, userPos);
-        }, error => {
-            alert("Please enable location services to track your order.");
-            // Fallback location if user denies permission
-            initializeMapTracking(orderId, {lat: 17.385, lng: 78.4867}); 
-        }, { enableHighAccuracy: true });
+    // Determine the drop-off location
+    let dropOffLocation;
+    
+    if (destinationLat && destinationLng) {
+        // Use the EXACT coordinates saved when the order was placed
+        dropOffLocation = { lat: destinationLat, lng: destinationLng };
+        initializeMapTracking(orderId, dropOffLocation);
     } else {
-        alert("Geolocation is not supported by your browser.");
+        // Fallback: If they didn't use GPS at checkout, default to a city center 
+        // (Or you could implement a geocoder here to convert their text address to coords)
+        alert("Exact GPS location wasn't saved for this order. Showing general tracking.");
+        dropOffLocation = { lat: 17.385, lng: 78.4867 }; 
+        initializeMapTracking(orderId, dropOffLocation);
     }
 }
 
-function initializeMapTracking(orderId, userPos) {
-    document.getElementById('statusText').innerText = "Establishing secure connection with driver...";
-
+function initializeMapTracking(orderId, dropOffLocation) {
     // Initialize Map
     map = new google.maps.Map(document.getElementById("map"), {
-        center: userPos,
+        center: dropOffLocation,
         zoom: 14,
-        disableDefaultUI: true // Clean mobile interface
+        disableDefaultUI: true 
     });
 
-    // Initialize Routing Services
     directionsService = new google.maps.DirectionsService();
     directionsRenderer = new google.maps.DirectionsRenderer({
         map: map,
-        suppressMarkers: true, // We will draw our own icons
-        polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } // Green route line
+        suppressMarkers: true, 
+        polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } 
     });
 
-    // Draw User Location (Home Icon)
+    // Draw the House Icon at the saved delivery location
     userMarker = new google.maps.Marker({
-        position: userPos,
+        position: dropOffLocation,
         map: map,
         icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" }
     });
 
-    // Create Driver Marker (Bike Icon)
     deliveryMarker = new google.maps.Marker({
         map: map,
         icon: { url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", scaledSize: new google.maps.Size(35, 35) }
@@ -460,26 +434,21 @@ function initializeMapTracking(orderId, userPos) {
         if(!data || !data.location) return;
 
         let driverPos = { lat: data.location.lat, lng: data.location.lng };
-        
-        // Move the driver marker
         deliveryMarker.setPosition(driverPos);
 
-        // Calculate Route ONLY ONCE to save Google Maps API costs
+        // Draw Route once
         if(!routeDrawn) {
-            document.getElementById('statusText').innerText = "Drawing route...";
+            document.getElementById('statusText').innerText = "Calculating route...";
             directionsService.route({
                 origin: driverPos,
-                destination: userPos,
+                destination: dropOffLocation, // Route to the saved drop-off location
                 travelMode: google.maps.TravelMode.DRIVING
             }, (response, status) => {
                 if (status === 'OK') {
                     directionsRenderer.setDirections(response);
-                    
-                    // Extract ETA from Google's response
                     let leg = response.routes[0].legs[0];
                     document.getElementById('eta').innerText = leg.duration.text;
                     document.getElementById('statusText').innerText = `Driver is ${leg.distance.text} away`;
-                    
                     routeDrawn = true;
                 } else {
                     document.getElementById('statusText').innerText = "Driver is on the move!";
@@ -490,7 +459,7 @@ function initializeMapTracking(orderId, userPos) {
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry"></script>
 
 </body>
 </html>
