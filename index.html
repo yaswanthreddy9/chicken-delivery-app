@@ -210,34 +210,49 @@ Your Orders
     <div id="map" style="height:85%;width:100%"></div>
 
     <!-- ✅ PASTE HERE (SWIGGY PANEL) -->
-    <div id="trackingPanel" style="
-      position:absolute;
-      bottom:0;
-      left:0;
-      width:100%;
-      background:white;
-      padding:15px;
-      border-radius:20px 20px 0 0;
-      box-shadow:0 -3px 10px rgba(0,0,0,0.2);
-    ">
-      <b>Order on the way 🚴</b>
+   <div id="trackingPanel" style="
+position:absolute;
+bottom:0;
+left:0;
+width:100%;
+background:white;
+padding:15px;
+border-radius:20px 20px 0 0;
+box-shadow:0 -3px 10px rgba(0,0,0,0.2);
+">
+if(distance < 200){
+notify("Your order is arriving!");
+}
+<b>Order on the way 🚴</b>
 
-      <div id="eta" style="
-        margin-top:5px;
-        color:#16a34a;
-        font-weight:bold;
-      ">
-        Calculating...
-      </div>
+<div id="eta" style="
+margin-top:5px;
+color:#16a34a;
+font-weight:bold;
+">
+Calculating...
+</div>
 
-      <div style="
-        margin-top:8px;
-        font-size:13px;
-        color:#555
-      ">
-        Your delivery partner is nearby
-      </div>
-    </div>
+<div id="deliveryInfo" style="
+margin-top:10px;
+font-size:14px;
+">
+
+<div id="boyName">👤 Assigning delivery partner...</div>
+
+<div id="boyPhone" style="margin-top:5px"></div>
+
+</div>
+
+<div id="statusText" style="
+margin-top:8px;
+font-size:13px;
+color:#555
+">
+Tracking live...
+</div>
+
+</div>
 
   </div>
 </div>
@@ -569,7 +584,19 @@ unsubscribe = db.collection("orders")
 .onSnapshot(doc=>{
 
 let data = doc.data();
-if(!data || !data.location) return;
+if(!data) return;
+
+/* DELIVERY BOY INFO */
+if(data.deliveryBoy){
+document.getElementById("boyName").innerText =
+"👤 " + data.deliveryBoy.name;
+
+document.getElementById("boyPhone").innerHTML =
+`📞 <a href="tel:${data.deliveryBoy.phone}">${data.deliveryBoy.phone}</a>`;
+}
+
+/* LOCATION */
+if(!data.location) return;
 
 let newPos = {
 lat: data.location.lat,
@@ -601,6 +628,21 @@ calculateETA(newPos, userMarker.getPosition());
 
 });
 }
+
+let userPos = userMarker?.getPosition();
+if(userPos){
+
+let distance = google.maps.geometry.spherical.computeDistanceBetween(
+new google.maps.LatLng(data.location.lat, data.location.lng),
+userPos
+);
+
+/* < 200 meters */
+if(distance < 200){
+document.getElementById("statusText").innerText =
+"🚀 Arriving in a moment!";
+}
+}  
 
 function animateMarker(start, end){
 let steps = 50;
@@ -647,8 +689,19 @@ let time = (distance / 30) * 60;
 document.getElementById("eta").innerText =
 "Arriving in " + Math.max(1, Math.round(time)) + " mins";
 }  
+
+function notify(msg){
+if(Notification.permission === "granted"){
+new Notification(msg);
+}
+}
+
+/* ask permission once */
+if(Notification.permission !== "granted"){
+Notification.requestPermission();
+}  
   
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry"></script>
 </body>
 </html>
