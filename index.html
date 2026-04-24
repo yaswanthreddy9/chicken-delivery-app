@@ -220,36 +220,32 @@ padding:15px;
 border-radius:20px 20px 0 0;
 box-shadow:0 -3px 10px rgba(0,0,0,0.2);
 ">
-if(distance < 200){
-notify("Your order is arriving!");
-}
+
 <b>Order on the way 🚴</b>
 
-<div id="eta" style="
-margin-top:5px;
-color:#16a34a;
-font-weight:bold;
-">
-Calculating...
-</div>
-
-<div id="deliveryInfo" style="
-margin-top:10px;
-font-size:14px;
-">
-
-<div id="boyName">👤 Assigning delivery partner...</div>
-
-<div id="boyPhone" style="margin-top:5px"></div>
-
-</div>
-
-<div id="statusText" style="
+<div style="
 margin-top:8px;
-font-size:13px;
+font-size:14px;
 color:#555
 ">
-Tracking live...
+Live delivery tracking
+</div>
+
+<div style="margin-top:12px">
+
+<a href="tel:1234567891" style="
+display:block;
+text-align:center;
+background:#16a34a;
+color:white;
+padding:10px;
+border-radius:8px;
+text-decoration:none;
+font-weight:bold;
+">
+📞 Call Delivery
+</a>
+
 </div>
 
 </div>
@@ -517,114 +513,53 @@ e.target.style.display="none";
 
 const menu=document.getElementById("menu");
 const overlay=document.getElementById("overlay");
-let map, marker, userMarker, polyline, unsubscribe;
-let lastPosition = null;
+// let map, marker, userMarker, polyline, unsubscribe;
+// let lastPosition = null;
 
-function initTrackingUI(){
-setTimeout(()=>{
-document.getElementById("eta").innerText="Calculating...";
-},200);
-}  
+// function initTrackingUI(){
+// setTimeout(()=>{
+// document.getElementById("eta").innerText="Calculating...";
+// },200);
+// }  
+
+let map, marker, unsubscribe;
 
 function trackOrder(orderId){
 
-mapModal.style.display = "flex";
+mapModal.style.display="flex";
 
-document.getElementById("map").innerHTML = "";
-initTrackingUI();
-
-/* INIT MAP */
 map = new google.maps.Map(document.getElementById("map"), {
-center: {lat:17.385, lng:78.4867},
-zoom: 14
+center:{lat:17.385, lng:78.4867},
+zoom:15
 });
 
-/* DELIVERY BIKE ICON */
+/* BIKE ICON */
 marker = new google.maps.Marker({
-map: map,
-icon: {
-url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png",
-scaledSize: new google.maps.Size(40,40)
-}
-});
-
-/* USER LOCATION */
-navigator.geolocation.getCurrentPosition(pos=>{
-let userPos = {
-lat: pos.coords.latitude,
-lng: pos.coords.longitude
-};
-
-userMarker = new google.maps.Marker({
-position:userPos,
 map:map,
 icon:{
-url:"https://maps.google.com/mapfiles/kml/shapes/homegardenbusiness.png",
-scaledSize:new google.maps.Size(35,35)
+url:"https://maps.google.com/mapfiles/kml/shapes/motorcycling.png",
+scaledSize:new google.maps.Size(40,40)
 }
 });
-
-map.setCenter(userPos);
-});
-
-/* ROUTE LINE */
-polyline = new google.maps.Polyline({
-path: [],
-strokeColor: "#16a34a",
-strokeWeight: 4
-});
-polyline.setMap(map);
 
 /* REMOVE OLD LISTENER */
 if(unsubscribe) unsubscribe();
 
-/* LIVE TRACK */
+/* LIVE LOCATION */
 unsubscribe = db.collection("orders")
 .doc(orderId)
 .onSnapshot(doc=>{
 
 let data = doc.data();
-if(!data) return;
+if(!data || !data.location) return;
 
-/* DELIVERY BOY INFO */
-if(data.deliveryBoy){
-document.getElementById("boyName").innerText =
-"👤 " + data.deliveryBoy.name;
-
-document.getElementById("boyPhone").innerHTML =
-`📞 <a href="tel:${data.deliveryBoy.phone}">${data.deliveryBoy.phone}</a>`;
-}
-
-/* LOCATION */
-if(!data.location) return;
-
-let newPos = {
-lat: data.location.lat,
-lng: data.location.lng
+let pos = {
+lat:data.location.lat,
+lng:data.location.lng
 };
 
-/* SMOOTH ANIMATION */
-if(lastPosition){
-animateMarker(lastPosition, newPos);
-}else{
-marker.setPosition(newPos);
-}
-lastPosition = newPos;
-
-/* UPDATE ROUTE */
-if(userMarker){
-let path = [newPos, userMarker.getPosition()];
-polyline.setPath(path);
-
-/* AUTO FIT */
-let bounds = new google.maps.LatLngBounds();
-bounds.extend(newPos);
-bounds.extend(userMarker.getPosition());
-map.fitBounds(bounds);
-
-/* ETA */
-calculateETA(newPos, userMarker.getPosition());
-}
+marker.setPosition(pos);
+map.setCenter(pos);
 
 });
 }
