@@ -361,22 +361,64 @@ render();
 function openOrders(){
 ordersModal.style.display="flex";
 
+if(!user){
+ordersList.innerHTML="Login first";
+return;
+}
+
 db.collection("orders")
 .where("userId","==",user.uid)
+.orderBy("createdAt","desc")
 .onSnapshot(snap=>{
+
 ordersList.innerHTML="";
 
 snap.forEach(doc=>{
-let o=doc.data();
-if(!o.items) return;
+let o = doc.data();
 
-ordersList.innerHTML+=`
-<div class="order">
-<b>#${doc.id.slice(0,6)}</b><br>
-${o.items.map(i=>i.name+" x"+i.qty).join(", ")}<br>
-📍 ${o.address}<br>
-₹${o.total}<br>
-<b>${o.status}</b>
+/* SAFE FALLBACKS */
+let items = o.items || [];
+let address = o.address || "No address";
+let total = o.total || 0;
+let status = o.status || "pending";
+
+/* FORMAT ITEMS */
+let itemsText = items.length
+? items.map(i => `${i.name} x${i.qty || 1}`).join(", ")
+: "Items not available";
+
+/* STATUS COLOR */
+let color = "#f59e0b"; // pending
+if(status==="delivered") color="#16a34a";
+if(status==="rejected") color="#dc2626";
+if(status==="out for delivery") color="#2563eb";
+
+ordersList.innerHTML += `
+<div style="
+background:#fff;
+padding:14px;
+margin:10px 0;
+border-radius:12px;
+box-shadow:0 3px 8px rgba(0,0,0,0.08);
+">
+
+<div style="display:flex;justify-content:space-between;">
+<b>#${doc.id.slice(0,6)}</b>
+<span style="color:${color};font-weight:bold">${status}</span>
+</div>
+
+<div style="margin-top:6px;font-size:14px">
+${itemsText}
+</div>
+
+<div style="margin-top:6px;color:#555;font-size:13px">
+📍 ${address}
+</div>
+
+<div style="margin-top:6px;font-weight:bold">
+₹${total}
+</div>
+
 </div>`;
 });
 });
