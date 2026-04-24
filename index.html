@@ -120,6 +120,7 @@ border-radius:20px 20px 0 0;
 padding:15px;
 overflow-y:auto; /* SCROLL FIX */
 animation:slideUp .3s ease;
+position: relative;
 }
 
 /* ANIMATION */
@@ -201,11 +202,45 @@ Your Orders
 
 <!-- MAP TRACKING -->
 <div id="mapModal" class="modal">
-<div class="box" style="height:90%">
-<h3>Live Tracking</h3>
-<div id="map" style="height:85%;width:100%"></div>
+  <div class="box" style="height:90%; position:relative">
+
+    <h3>Live Tracking</h3>
+
+    <!-- MAP -->
+    <div id="map" style="height:85%;width:100%"></div>
+
+    <!-- ✅ PASTE HERE (SWIGGY PANEL) -->
+    <div id="trackingPanel" style="
+      position:absolute;
+      bottom:0;
+      left:0;
+      width:100%;
+      background:white;
+      padding:15px;
+      border-radius:20px 20px 0 0;
+      box-shadow:0 -3px 10px rgba(0,0,0,0.2);
+    ">
+      <b>Order on the way 🚴</b>
+
+      <div id="eta" style="
+        margin-top:5px;
+        color:#16a34a;
+        font-weight:bold;
+      ">
+        Calculating...
+      </div>
+
+      <div style="
+        margin-top:8px;
+        font-size:13px;
+        color:#555
+      ">
+        Your delivery partner is nearby
+      </div>
+    </div>
+
+  </div>
 </div>
-</div>  
 
 <div id="ordersList"></div>
 </div>
@@ -467,47 +502,151 @@ e.target.style.display="none";
 
 const menu=document.getElementById("menu");
 const overlay=document.getElementById("overlay");
-let map, marker, unsubscribe;
+let map, marker, userMarker, polyline, unsubscribe;
+let lastPosition = null;
+
+function initTrackingUI(){
+setTimeout(()=>{
+document.getElementById("eta").innerText="Calculating...";
+},200);
+}  
 
 function trackOrder(orderId){
 
-mapModal.style.display="flex";
+mapModal.style.display = "flex";
+
+document.getElementById("map").innerHTML = "";
+initTrackingUI();
 
 /* INIT MAP */
 map = new google.maps.Map(document.getElementById("map"), {
-center:{lat:17.385, lng:78.4867},
-zoom:15
+center: {lat:17.385, lng:78.4867},
+zoom: 14
 });
 
+/* DELIVERY BIKE ICON */
 marker = new google.maps.Marker({
-map:map
+map: map,
+icon: {
+url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png",
+scaledSize: new google.maps.Size(40,40)
+}
 });
+
+/* USER LOCATION */
+navigator.geolocation.getCurrentPosition(pos=>{
+let userPos = {
+lat: pos.coords.latitude,
+lng: pos.coords.longitude
+};
+
+userMarker = new google.maps.Marker({
+position:userPos,
+map:map,
+icon:{
+url:"https://maps.google.com/mapfiles/kml/shapes/homegardenbusiness.png",
+scaledSize:new google.maps.Size(35,35)
+}
+});
+
+map.setCenter(userPos);
+});
+
+/* ROUTE LINE */
+polyline = new google.maps.Polyline({
+path: [],
+strokeColor: "#16a34a",
+strokeWeight: 4
+});
+polyline.setMap(map);
 
 /* REMOVE OLD LISTENER */
 if(unsubscribe) unsubscribe();
 
-/* LIVE FIRESTORE TRACK */
+/* LIVE TRACK */
 unsubscribe = db.collection("orders")
 .doc(orderId)
 .onSnapshot(doc=>{
 
 let data = doc.data();
-
-/* ONLY TRACK WHEN LOCATION EXISTS */
 if(!data || !data.location) return;
 
-let loc = data.location;
-
-let pos = {
-lat:loc.lat,
-lng:loc.lng
+let newPos = {
+lat: data.location.lat,
+lng: data.location.lng
 };
 
-marker.setPosition(pos);
-map.setCenter(pos);
+/* SMOOTH ANIMATION */
+if(lastPosition){
+animateMarker(lastPosition, newPos);
+}else{
+marker.setPosition(newPos);
+}
+lastPosition = newPos;
+
+/* UPDATE ROUTE */
+if(userMarker){
+let path = [newPos, userMarker.getPosition()];
+polyline.setPath(path);
+
+/* AUTO FIT */
+let bounds = new google.maps.LatLngBounds();
+bounds.extend(newPos);
+bounds.extend(userMarker.getPosition());
+map.fitBounds(bounds);
+
+/* ETA */
+calculateETA(newPos, userMarker.getPosition());
+}
 
 });
 }
+
+function animateMarker(start, end){
+let steps = 50;
+let i = 0;
+
+let latStep = (end.lat - start.lat)/steps;
+let lngStep = (end.lng - start.lng)/steps;
+
+let interval = setInterval(()=>{
+i++;
+
+let pos = {
+lat: start.lat + latStep*i,
+lng: start.lng + lngStep*i
+};
+
+marker.setPosition(pos);
+
+if(i >= steps){
+clearInterval(interval);
+}
+}, 50);
+}
+
+
+function calculateETA(delivery, user){
+
+let R = 6371; // km
+let dLat = (user.lat() - delivery.lat) * Math.PI/180;
+let dLng = (user.lng() - delivery.lng) * Math.PI/180;
+
+let a =
+Math.sin(dLat/2)*Math.sin(dLat/2) +
+Math.cos(delivery.lat*Math.PI/180) *
+Math.cos(user.lat()*Math.PI/180) *
+Math.sin(dLng/2)*Math.sin(dLng/2);
+
+let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+let distance = R * c;
+
+/* Assume avg speed 30 km/h */
+let time = (distance / 30) * 60;
+
+document.getElementById("eta").innerText =
+"Arriving in " + Math.max(1, Math.round(time)) + " mins";
+}  
   
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
