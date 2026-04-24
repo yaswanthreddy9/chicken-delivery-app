@@ -41,10 +41,16 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 
 input, select, textarea { box-sizing: border-box; width:100%; padding:14px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: Arial; }
 .btn-primary { width: 100%; background: #16a34a; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
-.btn-location { width: 100%; background: #eefce9; color: #16a34a; border: 1px solid #16a34a; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-location { width: 100%; background: #eefce9; color: #16a34a; border: 1px solid #16a34a; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
 /* TRACKING UI */
 #trackingPanel { position: absolute; bottom: 0; left: 0; width: 100%; background: white; padding: 20px; border-radius: 20px 20px 0 0; box-shadow: 0 -3px 20px rgba(0,0,0,0.15); box-sizing: border-box; z-index: 10; }
+
+/* DIVIDER */
+.divider { display: flex; align-items: center; text-align: center; margin: 15px 0; color: #aaa; font-size: 13px; font-weight: bold; }
+.divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
+.divider:not(:empty)::before { margin-right: .5em; }
+.divider:not(:empty)::after { margin-left: .5em; }
 </style>
 </head>
 
@@ -103,8 +109,8 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
         </div>
 
         <div id="manualAddressContainer">
-            <p style="margin: 0 0 5px 0; font-size: 12px; color: #666; text-align: center;">OR ENTER MANUALLY</p>
-            <input id="manualAddress" placeholder="Full Address with Area and Landmark">
+            <div class="divider">OR ENTER MANUALLY</div>
+            <textarea id="manualAddress" rows="3" placeholder="Enter Full Address (House No, Building, Street, Area, Landmark)" style="resize: none;"></textarea>
         </div>
 
         <select id="payment" style="margin-top: 10px;">
@@ -316,14 +322,12 @@ function initPickerMap(lat, lng) {
     pickerMarker = new google.maps.Marker({
         position: centerPos,
         map: pickerMap,
-        draggable: true, // Make the pin draggable!
+        draggable: true,
         animation: google.maps.Animation.DROP
     });
 
-    // Translate the initial coords into text
     geocodePosition(pickerMarker.getPosition());
 
-    // When the user drags and drops the pin, update the coordinates and address
     google.maps.event.addListener(pickerMarker, 'dragend', function() {
         deliveryLat = pickerMarker.getPosition().lat();
         deliveryLng = pickerMarker.getPosition().lng();
@@ -346,14 +350,12 @@ function geocodePosition(pos) {
 function confirmPickedLocation() {
     document.getElementById('locationPickerModal').style.display = "none";
     
-    // Update Checkout UI
     document.getElementById('gpsIcon').innerText = "✅";
     document.getElementById('gpsText').innerText = "Map Location Set!";
     
     document.getElementById('manualAddressContainer').style.display = "none";
     document.getElementById('specificAddressContainer').style.display = "block";
     
-    // Auto-fill the text area with the Google Maps address so the user only has to type their flat number
     const fetchedAddress = document.getElementById('pickedAddressText').innerText;
     if(fetchedAddress !== "Fetching address..." && !fetchedAddress.includes("Area address not found")) {
         document.getElementById('exactAddress').value = "\n" + fetchedAddress;
@@ -553,7 +555,7 @@ function initializeMapTracking(orderId, dropOffLocation) {
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry,places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry,places"></script>
 
 </body>
 </html>
