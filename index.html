@@ -97,12 +97,22 @@ input, select { box-sizing: border-box; width:100%; padding:14px; margin-bottom:
             <span id="gpsIcon">📍</span> <span id="gpsText">Use my current GPS location</span>
         </button>
 
-        <input id="address" placeholder="House/Flat No, Building, Area">
-        <select id="payment">
+        <div id="specificAddressContainer" style="display: none; background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #16a34a; font-weight: bold;">Location Captured!</p>
+            <input id="exactAddress" placeholder="Enter House/Flat No, Floor, Building (Required)" style="margin-bottom: 0;">
+        </div>
+
+        <div id="manualAddressContainer">
+            <p style="margin: 0 0 5px 0; font-size: 12px; color: #666; text-align: center;">OR ENTER MANUALLY</p>
+            <input id="manualAddress" placeholder="Full Address with Area and Landmark">
+        </div>
+
+        <select id="payment" style="margin-top: 10px;">
             <option value="">Select Payment Method</option>
             <option value="COD">Cash on Delivery</option>
             <option value="ONLINE">Pay Online</option>
         </select>
+        
         <button class="btn-primary" onclick="placeOrder()">Place Order</button>
     </div>
 </div>
@@ -151,7 +161,6 @@ let cart = {};
 let itemsCache = {};
 let user = null;
 
-// New variables to hold exact delivery coordinates
 let deliveryLat = null;
 let deliveryLng = null;
 
@@ -255,7 +264,6 @@ function updateCart() {
 function openCart() { document.getElementById('cartModal').style.display = "flex"; }
 function checkout() { document.getElementById('cartModal').style.display = "none"; document.getElementById('checkoutModal').style.display = "flex"; }
 
-// GPS FUNCTION
 function fetchUserLocation() {
     const gpsText = document.getElementById('gpsText');
     const gpsIcon = document.getElementById('gpsIcon');
@@ -268,11 +276,15 @@ function fetchUserLocation() {
             deliveryLng = pos.coords.longitude;
             
             gpsIcon.innerText = "✅";
-            gpsText.innerText = "Exact location captured!";
-            document.getElementById('address').placeholder = "Add floor/door number (optional)";
+            gpsText.innerText = "GPS Located!";
+            
+            // Hide the manual input, show the specific details input
+            document.getElementById('manualAddressContainer').style.display = "none";
+            document.getElementById('specificAddressContainer').style.display = "block";
+            
         }, err => {
             gpsIcon.innerText = "❌";
-            gpsText.innerText = "Failed. Please allow location access.";
+            gpsText.innerText = "Failed. Please enter address manually.";
         });
     } else {
         alert("GPS not supported on this browser.");
@@ -282,11 +294,26 @@ function fetchUserLocation() {
 function placeOrder() {
     if(!user) { alert("Please login first"); return; }
     
-    const address = document.getElementById('address').value;
+    let finalAddressText = "";
+    const manualInput = document.getElementById('manualAddress').value;
+    const exactInput = document.getElementById('exactAddress').value;
     const payment = document.getElementById('payment').value;
-    
-    // We require either a typed address OR a captured GPS coordinate
-    if(!address && !deliveryLat) { alert("Please enter an address or click 'Use my current GPS location'"); return; }
+
+    // Determine which address method they used
+    if (deliveryLat && deliveryLng) {
+        if (!exactInput) {
+            alert("Please enter your House/Flat number!");
+            return;
+        }
+        finalAddressText = exactInput + " (GPS Location Provided)";
+    } else {
+        if (!manualInput) {
+            alert("Please enter your full delivery address");
+            return;
+        }
+        finalAddressText = manualInput;
+    }
+
     if(!payment) { alert("Select payment method"); return; }
 
     let items = [];
@@ -297,13 +324,12 @@ function placeOrder() {
         total += cart[id].price * cart[id].qty;
     }
 
-    // Include the exact GPS coordinates in the order database
     db.collection("orders").add({
         userId: user.uid,
         userName: user.displayName,
         items,
         total,
-        address: address || "GPS Location Provided",
+        address: finalAddressText,
         deliveryLocation: (deliveryLat && deliveryLng) ? { lat: deliveryLat, lng: deliveryLng } : null,
         payment: payment,
         status: "pending",
@@ -311,11 +337,16 @@ function placeOrder() {
     });
 
     alert("Order placed successfully!");
+    
+    // Reset UI
     cart = {};
-    deliveryLat = null; // reset
-    deliveryLng = null; // reset
+    deliveryLat = null; 
+    deliveryLng = null; 
     document.getElementById('checkoutModal').style.display = "none";
-    document.getElementById('address').value = "";
+    document.getElementById('manualAddress').value = "";
+    document.getElementById('exactAddress').value = "";
+    document.getElementById('specificAddressContainer').style.display = "none";
+    document.getElementById('manualAddressContainer').style.display = "block";
     document.getElementById('gpsText').innerText = "Use my current GPS location";
     document.getElementById('gpsIcon').innerText = "📍";
     render();
@@ -340,11 +371,9 @@ function openOrders() {
             let itemsText = o.items ? o.items.map(i => `${i.qty}x ${i.name}`).join(", ") : "No items";
             let color = o.status === "delivered" ? "#16a34a" : (o.status === "out for delivery" ? "#2563eb" : "#f59e0b");
             
-            // Extract the saved coordinates from the database safely
             let savedLat = o.deliveryLocation ? o.deliveryLocation.lat : null;
             let savedLng = o.deliveryLocation ? o.deliveryLocation.lng : null;
 
-            // Pass the exact saved coordinates to the tracking function
             let trackBtn = o.status === "out for delivery" 
                 ? `<button onclick="trackOrder('${o.id}', ${savedLat}, ${savedLng})" style="margin-top:12px; width:100%; padding:12px; background:#eefce9; color:#16a34a; border:1px solid #16a34a; border-radius:8px; cursor:pointer; font-weight:bold; font-size:15px;">📍 Track Live Order</button>` : "";
 
@@ -377,30 +406,29 @@ let directionsService, directionsRenderer;
 let unsubscribeTracking;
 let routeDrawn = false; 
 
-// We now accept destinationLat and destinationLng directly from the order history
 function trackOrder(orderId, destinationLat, destinationLng) {
     document.getElementById('mapModal').style.display = "flex";
     document.getElementById('statusText').innerText = "Connecting to driver...";
     routeDrawn = false;
 
-    // Determine the drop-off location
     let dropOffLocation;
     
     if (destinationLat && destinationLng) {
-        // Use the EXACT coordinates saved when the order was placed
         dropOffLocation = { lat: destinationLat, lng: destinationLng };
-        initializeMapTracking(orderId, dropOffLocation);
     } else {
-        // Fallback: If they didn't use GPS at checkout, default to a city center 
-        // (Or you could implement a geocoder here to convert their text address to coords)
-        alert("Exact GPS location wasn't saved for this order. Showing general tracking.");
         dropOffLocation = { lat: 17.385, lng: 78.4867 }; 
-        initializeMapTracking(orderId, dropOffLocation);
+        console.warn("No GPS location saved for this order. Using default.");
     }
+    
+    initializeMapTracking(orderId, dropOffLocation);
 }
 
 function initializeMapTracking(orderId, dropOffLocation) {
-    // Initialize Map
+    if(typeof google === 'undefined') {
+        alert("Google Maps failed to load. Please check your API key and billing in Google Cloud.");
+        return;
+    }
+
     map = new google.maps.Map(document.getElementById("map"), {
         center: dropOffLocation,
         zoom: 14,
@@ -414,7 +442,6 @@ function initializeMapTracking(orderId, dropOffLocation) {
         polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } 
     });
 
-    // Draw the House Icon at the saved delivery location
     userMarker = new google.maps.Marker({
         position: dropOffLocation,
         map: map,
@@ -428,7 +455,6 @@ function initializeMapTracking(orderId, dropOffLocation) {
 
     if(unsubscribeTracking) unsubscribeTracking();
 
-    // Listen to Firebase for Driver movement
     unsubscribeTracking = db.collection("orders").doc(orderId).onSnapshot(doc => {
         let data = doc.data();
         if(!data || !data.location) return;
@@ -436,12 +462,11 @@ function initializeMapTracking(orderId, dropOffLocation) {
         let driverPos = { lat: data.location.lat, lng: data.location.lng };
         deliveryMarker.setPosition(driverPos);
 
-        // Draw Route once
         if(!routeDrawn) {
             document.getElementById('statusText').innerText = "Calculating route...";
             directionsService.route({
                 origin: driverPos,
-                destination: dropOffLocation, // Route to the saved drop-off location
+                destination: dropOffLocation,
                 travelMode: google.maps.TravelMode.DRIVING
             }, (response, status) => {
                 if (status === 'OK') {
@@ -459,7 +484,7 @@ function initializeMapTracking(orderId, dropOffLocation) {
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry"></script>
 
 </body>
 </html>
