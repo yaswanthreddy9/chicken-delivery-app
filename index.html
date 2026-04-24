@@ -368,27 +368,35 @@ return;
 
 db.collection("orders")
 .where("userId","==",user.uid)
-.orderBy("createdAt","desc")
 .onSnapshot(snap=>{
 
 ordersList.innerHTML="";
 
-snap.forEach(doc=>{
-let o = doc.data();
+let data = [];
 
-/* SAFE FALLBACKS */
+snap.forEach(doc=>{
+data.push({id:doc.id, ...doc.data()});
+});
+
+/* SORT MANUALLY */
+data.sort((a,b)=>{
+return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+});
+
+/* RENDER */
+data.forEach(o=>{
+
 let items = o.items || [];
 let address = o.address || "No address";
 let total = o.total || 0;
 let status = o.status || "pending";
 
-/* FORMAT ITEMS */
 let itemsText = items.length
 ? items.map(i => `${i.name} x${i.qty || 1}`).join(", ")
-: "Items not available";
+: "No items";
 
-/* STATUS COLOR */
-let color = "#f59e0b"; // pending
+/* COLOR */
+let color="#f59e0b";
 if(status==="delivered") color="#16a34a";
 if(status==="rejected") color="#dc2626";
 if(status==="out for delivery") color="#2563eb";
@@ -403,24 +411,17 @@ box-shadow:0 3px 8px rgba(0,0,0,0.08);
 ">
 
 <div style="display:flex;justify-content:space-between;">
-<b>#${doc.id.slice(0,6)}</b>
+<b>#${o.id.slice(0,6)}</b>
 <span style="color:${color};font-weight:bold">${status}</span>
 </div>
 
-<div style="margin-top:6px;font-size:14px">
-${itemsText}
-</div>
-
-<div style="margin-top:6px;color:#555;font-size:13px">
-📍 ${address}
-</div>
-
-<div style="margin-top:6px;font-weight:bold">
-₹${total}
-</div>
+<div style="margin-top:6px">${itemsText}</div>
+<div style="margin-top:6px;color:#555">📍 ${address}</div>
+<div style="margin-top:6px;font-weight:bold">₹${total}</div>
 
 </div>`;
 });
+
 });
 }
 
