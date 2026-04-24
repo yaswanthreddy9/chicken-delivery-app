@@ -13,16 +13,15 @@ background:#16a34a;
 color:white;
 padding:15px;
 display:flex;
-align-items:center;
 justify-content:space-between;
 }
 
 /* MENU */
 .menu{
 position:fixed;
-left:-250px;
+left:-260px;
 top:0;
-width:250px;
+width:260px;
 height:100%;
 background:white;
 transition:.3s;
@@ -36,29 +35,14 @@ color:white;
 padding:20px;
 }
 
-.menu-item{
-padding:15px;
-border-bottom:1px solid #eee;
-cursor:pointer;
-}
-
-/* OVERLAY */
-#overlay{
-position:fixed;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.4);
-display:none;
-}
-
 /* ITEMS */
 .container{padding:15px}
 
 .card{
 background:white;
-padding:10px;
+padding:12px;
 margin:10px 0;
-border-radius:10px;
+border-radius:12px;
 box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
@@ -69,14 +53,14 @@ object-fit:cover;
 border-radius:10px;
 }
 
-/* BUTTON */
-button{
-background:#16a34a;
-color:white;
-border:none;
-padding:6px 12px;
-border-radius:6px;
-margin-top:5px;
+/* QTY */
+.qty{
+display:flex;
+gap:10px;
+margin-top:10px;
+}
+.qty button{
+background:#16a34a;color:white;border:none;padding:6px 10px;
 }
 
 /* CART */
@@ -109,6 +93,16 @@ background:white;
 padding:20px;
 border-radius:10px;
 width:90%;
+max-width:400px;
+}
+
+/* ORDER */
+.order{
+background:#fff;
+padding:12px;
+margin:8px 0;
+border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 </style>
 </head>
@@ -134,21 +128,37 @@ Chicken Delivery
 <div class="menu-item" onclick="logout()">Logout</div>
 </div>
 
-<!-- ITEMS -->
 <div class="container">
 <h3>Menu</h3>
 <div id="itemsList"></div>
 </div>
 
-<!-- CART BUTTON -->
-<div id="cartBtn" class="cart" onclick="openCart()" style="display:none"></div>
+<div id="cartBtn" class="cart" style="display:none"></div>
 
 <!-- CART -->
 <div id="cartModal" class="modal">
 <div class="box">
 <h3>Cart</h3>
 <div id="cartItems"></div>
-<button onclick="placeOrder()">Place Order</button>
+<b>Total ₹<span id="total"></span></b><br><br>
+<button onclick="checkout()">Checkout</button>
+</div>
+</div>
+
+<!-- CHECKOUT -->
+<div id="checkoutModal" class="modal">
+<div class="box">
+<h3>Checkout</h3>
+
+<input id="address" placeholder="Enter Address" style="width:100%;padding:10px"><br><br>
+
+<select id="payment" style="width:100%;padding:10px">
+<option value="">Select Payment</option>
+<option value="COD">Cash on Delivery</option>
+<option value="ONLINE">Online Payment</option>
+</select><br><br>
+
+<button onclick="placeOrder()">Confirm Order</button>
 </div>
 </div>
 
@@ -174,184 +184,134 @@ projectId:"chicken-delivery-app-9e4f6"
 const db=firebase.firestore();
 const auth=firebase.auth();
 
-let cart = [];
-let user = null;
+let cart={};
+let user=null;
 
-/* MENU */
-function openMenu(){
-menu.classList.add("open");
-overlay.style.display="block";
-}
-function closeMenu(){
-menu.classList.remove("open");
-overlay.style.display="none";
-}
-
-/* LOGIN (FORCE GOOGLE POPUP) */
-const loginBtn = document.getElementById("loginBtn");
-
-loginBtn.onclick = () => {
-const provider = new firebase.auth.GoogleAuthProvider();
-auth.signInWithPopup(provider);
-};
-
-function logout(){
-auth.signOut();
-}
+/* LOGIN */
+loginBtn.onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+function logout(){auth.signOut();}
 
 auth.onAuthStateChanged(u=>{
-user = u;
+user=u;
+loginBtn.innerText=u?"Logout":"Login";
 if(u){
-loginBtn.innerText = "Logout";
-loginBtn.onclick = logout;
-
-userName.innerText = u.displayName;
-userEmail.innerText = u.email;
+loginBtn.onclick=logout;
+userName.innerText=u.displayName;
+userEmail.innerText=u.email;
 }else{
-loginBtn.innerText = "Login";
-loginBtn.onclick = () => {
-auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-};
-
-userName.innerText = "Guest";
-userEmail.innerText = "Not logged in";
+loginBtn.onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
 }
 });
 
-/* LOAD ITEMS */
+/* ITEMS */
 db.collection("items").onSnapshot(snap=>{
-itemsList.innerHTML = "";
+itemsList.innerHTML="";
 
 snap.forEach(doc=>{
-let i = doc.data();
+let i=doc.data();
 
-itemsList.innerHTML += `
+itemsList.innerHTML+=`
 <div class="card">
 <img src="${i.image}">
 <b>${i.name}</b><br>
 ₹${i.price}
-
-<div id="ctrl-${i.name}"></div>
+<div id="ctrl-${doc.id}"></div>
 </div>`;
 });
 
-renderItems();
+render();
 });
 
-/* ADD ITEM */
-function add(name,price){
-cart.push({name,price});
-updateCart();
-renderItems();
+/* CART */
+function add(id,name,price){
+if(!cart[id]) cart[id]={name,price,qty:0};
+cart[id].qty++;
+render();
+}
+function inc(id){cart[id].qty++;render();}
+function dec(id){
+cart[id].qty--;
+if(cart[id].qty<=0) delete cart[id];
+render();
 }
 
-/* REMOVE ONE */
-function removeOne(name){
-let index = cart.findIndex(i=>i.name===name);
-if(index !== -1){
-cart.splice(index,1);
-}
-updateCart();
-renderItems();
-}
+/* RENDER */
+function render(){
+let total=0,count=0;
 
-/* COUNT */
-function getQty(name){
-return cart.filter(i=>i.name===name).length;
-}
+for(let id in cart){
+let c=cart[id];
+total+=c.price*c.qty;
+count+=c.qty;
 
-/* RENDER BUTTONS */
-function renderItems(){
-db.collection("items").get().then(snap=>{
-snap.forEach(doc=>{
-let i = doc.data();
-let qty = getQty(i.name);
-
-let el = document.getElementById("ctrl-"+i.name);
-
-if(qty > 0){
-el.innerHTML = `
-<div style="display:flex;justify-content:center;gap:10px;margin-top:8px">
-<button onclick="removeOne('${i.name}')">-</button>
-${qty}
-<button onclick="add('${i.name}',${i.price})">+</button>
+let el=document.getElementById("ctrl-"+id);
+if(el){
+el.innerHTML=`
+<div class="qty">
+<button onclick="dec('${id}')">-</button>
+${c.qty}
+<button onclick="inc('${id}')">+</button>
 </div>`;
-}else{
-el.innerHTML = `
-<button onclick="add('${i.name}',${i.price})">ADD</button>`;
 }
-});
-});
 }
 
-/* CART UPDATE */
-function updateCart(){
-let total = 0;
+document.querySelectorAll("[id^='ctrl-']").forEach(el=>{
+let id=el.id.replace("ctrl-","");
+if(!cart[id]){
+let name=el.parentElement.querySelector("b").innerText;
+let price=el.parentElement.innerHTML.match(/₹(\\d+)/)[1];
 
-cart.forEach(i=> total += i.price);
+el.innerHTML=`<button onclick="add('${id}','${name}',${price})">ADD</button>`;
+}
+});
 
-cartBtn.style.display = cart.length ? "block" : "none";
-cartBtn.innerText = `${cart.length} items • ₹${total}`;
+cartBtn.style.display=count?"block":"none";
+cartBtn.innerText=`${count} items • ₹${total}`;
 }
 
 /* CART MODAL */
-function openCart(){
-cartModal.style.display="flex";
+cartBtn.onclick=()=>cartModal.style.display="flex";
 
-cartItems.innerHTML = "";
-
-let total = 0;
-
-/* GROUP ITEMS */
-let grouped = {};
-cart.forEach(i=>{
-if(!grouped[i.name]) grouped[i.name] = {price:i.price,qty:0};
-grouped[i.name].qty++;
-});
-
-for(let k in grouped){
-let item = grouped[k];
-let sub = item.price * item.qty;
-total += sub;
-
-cartItems.innerHTML += `
-<div style="margin-bottom:10px">
-<b>${k}</b><br>
-${item.qty} x ₹${item.price} = ₹${sub}
-</div>`;
-}
-
-cartItems.innerHTML += `<hr><b>Total ₹${total}</b>`;
+function checkout(){
+cartModal.style.display="none";
+checkoutModal.style.display="flex";
 }
 
 /* PLACE ORDER */
 function placeOrder(){
 if(!user){alert("Login first");return;}
+if(!address.value){alert("Enter address");return;}
+if(!payment.value){alert("Select payment");return;}
+
+let items=[];
+let total=0;
+
+for(let id in cart){
+items.push(cart[id]);
+total+=cart[id].price*cart[id].qty;
+}
 
 db.collection("orders").add({
 userId:user.uid,
 userName:user.displayName,
-items:cart,
+items:items,
+total:total,
+address:address.value,
+payment:payment.value,
 status:"pending",
 createdAt:firebase.firestore.FieldValue.serverTimestamp()
 });
 
 alert("Order placed!");
 
-cart = [];
-cartModal.style.display="none";
-updateCart();
-renderItems();
+cart={};
+checkoutModal.style.display="none";
+render();
 }
 
-/* ORDERS (UNCHANGED) */
+/* ORDERS */
 function openOrders(){
 ordersModal.style.display="flex";
-
-if(!user){
-ordersList.innerHTML="Login first";
-return;
-}
 
 db.collection("orders")
 .where("userId","==",user.uid)
@@ -361,11 +321,15 @@ ordersList.innerHTML="";
 
 snap.forEach(doc=>{
 let o=doc.data();
+if(!o.items || !o.total) return;
 
 ordersList.innerHTML+=`
-<div class="card">
+<div class="order">
 <b>#${doc.id.slice(0,6)}</b><br>
-Status: ${o.status}
+${o.items.map(i=>i.name+" x"+i.qty).join(", ")}<br>
+📍 ${o.address}<br>
+₹${o.total}<br>
+<b>${o.status}</b>
 </div>`;
 });
 });
@@ -378,16 +342,8 @@ e.target.style.display="none";
 }
 };
 
-/* DOM */
 const menu=document.getElementById("menu");
 const overlay=document.getElementById("overlay");
-const cartBtn=document.getElementById("cartBtn");
-const cartModal=document.getElementById("cartModal");
-const ordersModal=document.getElementById("ordersModal");
-const cartItems=document.getElementById("cartItems");
-const ordersList=document.getElementById("ordersList");
-const userName=document.getElementById("userName");
-const userEmail=document.getElementById("userEmail");
 </script>
 
 </body>
