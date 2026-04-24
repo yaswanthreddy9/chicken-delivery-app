@@ -199,6 +199,14 @@ Chicken Delivery
 Your Orders
 </div>
 
+<!-- MAP TRACKING -->
+<div id="mapModal" class="modal">
+<div class="box" style="height:90%">
+<h3>Live Tracking</h3>
+<div id="map" style="height:85%;width:100%"></div>
+</div>
+</div>  
+
 <div id="ordersList"></div>
 </div>
 </div>
@@ -411,7 +419,22 @@ let color="#f59e0b";
 if(status==="delivered") color="#16a34a";
 if(status==="rejected") color="#dc2626";
 if(status==="out for delivery") color="#2563eb";
+let trackBtn = "";
 
+if(status === "out for delivery"){
+trackBtn = `
+<button onclick="trackOrder('${o.id}')" 
+style="
+margin-top:10px;
+padding:6px 12px;
+background:#2563eb;
+color:white;
+border:none;
+border-radius:6px;
+">
+Track
+</button>`;
+}
 ordersList.innerHTML+=`
 <div style="
 background:#fff;
@@ -429,7 +452,7 @@ box-shadow:0 3px 8px rgba(0,0,0,0.08);
 <div style="margin-top:6px">${itemsText}</div>
 <div style="margin-top:6px;color:#555">📍 ${address}</div>
 <div style="margin-top:6px;font-weight:bold">₹${total}</div>
-
+${trackBtn} 
 </div>`;
 });
 
@@ -444,7 +467,49 @@ e.target.style.display="none";
 
 const menu=document.getElementById("menu");
 const overlay=document.getElementById("overlay");
-</script>
+let map, marker, unsubscribe;
 
+function trackOrder(orderId){
+
+mapModal.style.display="flex";
+
+/* INIT MAP */
+map = new google.maps.Map(document.getElementById("map"), {
+center:{lat:17.385, lng:78.4867},
+zoom:15
+});
+
+marker = new google.maps.Marker({
+map:map
+});
+
+/* REMOVE OLD LISTENER */
+if(unsubscribe) unsubscribe();
+
+/* LIVE FIRESTORE TRACK */
+unsubscribe = db.collection("orders")
+.doc(orderId)
+.onSnapshot(doc=>{
+
+let data = doc.data();
+
+/* ONLY TRACK WHEN LOCATION EXISTS */
+if(!data || !data.location) return;
+
+let loc = data.location;
+
+let pos = {
+lat:loc.lat,
+lng:loc.lng
+};
+
+marker.setPosition(pos);
+map.setCenter(pos);
+
+});
+}
+  
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLds9mdWrFd1ap158yji-WzxRatQcYFQA"></script>
 </body>
 </html>
