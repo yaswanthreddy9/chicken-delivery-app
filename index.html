@@ -12,7 +12,7 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 .menu { position: fixed; left: -260px; top: 0; width: 260px; height: 100%; background: white; transition: .3s; z-index: 1000; }
 .menu.open { left: 0; }
 .menu-header { background: #16a34a; color: white; padding: 20px; }
-.menu-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 10px;}
+.menu-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; color: #333;}
 #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 900; }
 
 /* ANNOUNCEMENT BAR */
@@ -25,7 +25,7 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 .toast { background: #111; color: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: bold; font-size: 14px; text-align: center; animation: toastFade 5s forwards; }
 @keyframes toastFade { 0% { opacity: 0; transform: translateY(-20px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
 
-/* BLINKIT-STYLE ACTIVE DELIVERIES BANNER */
+/* ACTIVE DELIVERIES BANNER */
 #activeDeliveriesBar { display: none; position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 400px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); z-index: 40; border: 1px solid #eee; align-items: center; padding: 10px 15px; box-sizing: border-box; }
 #closeTrackerBtn { position: absolute; top: -8px; right: -8px; background: white; color: #555; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 22px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 1px solid #ccc; z-index: 50; font-size: 12px; }
 #scrollerContainer { flex: 1; overflow: hidden; position: relative; }
@@ -63,9 +63,9 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 .btn-location { width: 100%; background: #eefce9; color: #16a34a; border: 1px solid #16a34a; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
 /* ADDRESS & PAYMENT CARDS */
-.address-card { border: 2px solid #eee; border-radius: 10px; padding: 15px; margin-bottom: 10px; cursor: pointer; position: relative; transition: 0.2s; }
-.address-card.active { border-color: #16a34a; background: #f0fdf4; }
-.address-label { font-weight: bold; font-size: 15px; color: #333; margin-bottom: 4px; display:flex; align-items:center; gap:5px;}
+.address-card { border: 1px solid #ddd; border-radius: 12px; padding: 15px; margin-bottom: 10px; cursor: pointer; position: relative; transition: 0.2s; background: white;}
+.address-card.active { border: 2px solid #16a34a; background: #f0fdf4; box-shadow: 0 4px 10px rgba(22,163,74,0.1);}
+.address-label { font-weight: bold; font-size: 16px; color: #333; margin-bottom: 6px; display:flex; align-items:center; gap:8px;}
 .address-text { font-size: 13px; color: #666; line-height: 1.4; }
 
 .pay-card { border: 2px solid #eee; border-radius: 12px; padding: 18px; margin-bottom: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-weight: bold; font-size: 16px; color: #333; transition: 0.2s;}
@@ -118,7 +118,8 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
         <h3 id="userName" style="margin:0 0 5px 0;">Guest</h3>
         <p id="userEmail" style="margin:0; font-size: 14px; opacity: 0.8;">Not logged in</p>
     </div>
-    <div class="menu-item" onclick="openProfile()">👤 My Profile & Addresses</div>
+    <div class="menu-item" onclick="openProfile()">👤 My Profile</div>
+    <div class="menu-item" onclick="openAddresses()">📍 My Addresses</div>
     <div class="menu-item" onclick="openOrders()">📦 My Orders</div>
     <div class="menu-item" onclick="logout()">🚪 Logout</div>
 </div>
@@ -140,29 +141,42 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 </div>
 
 <div id="profileModal" class="modal">
-    <div class="box" style="margin-top: auto;">
-        <h3 style="margin-top:0;">My Profile</h3>
+    <div class="box" style="height: auto; margin-top: auto; border-radius: 20px 20px 0 0;">
+        <h3 style="margin-top:0;">My Contact Details</h3>
         <input id="profileName" placeholder="Full Name">
         <input id="profilePhone" type="tel" placeholder="Phone Number (10 digits)">
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 10px;">
-            <h4 style="margin: 0; color: #333;">Saved Addresses</h4>
-            <button onclick="showNewAddressForm()" style="background: transparent; color: #16a34a; border: none; font-weight: bold; font-size: 14px; cursor: pointer; padding: 0;">+ Add New</button>
+        <button class="btn-primary" onclick="saveProfile()">Save Details</button>
+        <button onclick="document.getElementById('profileModal').style.display='none'" style="width: 100%; background: #eee; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer;">Cancel</button>
+    </div>
+</div>
+
+<div id="addressesModal" class="modal">
+    <div class="box" style="height: auto; max-height: 90%; margin-top: auto; border-radius: 20px 20px 0 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin:0;">My Addresses</h3>
+            <button onclick="startAddNewAddress()" style="background: #eefce9; color: #16a34a; border: 1px solid #16a34a; font-weight: bold; font-size: 13px; cursor: pointer; padding: 6px 12px; border-radius: 6px;">+ Add New</button>
         </div>
         
         <div id="profileAddressList"></div>
+        <button onclick="document.getElementById('addressesModal').style.display='none'" style="width: 100%; background: #eee; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top:10px;">Close</button>
+    </div>
+</div>
 
-        <div id="newAddressForm" style="display:none; background: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 15px;">
-            <input id="newAddrLabel" placeholder="Label (e.g. Home, Office)" style="margin-bottom: 8px; padding: 10px;">
-            <textarea id="newAddrText" rows="3" placeholder="Full Address" style="margin-bottom: 8px; padding: 10px;"></textarea>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="saveNewAddress()" style="flex: 1; background: #16a34a; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold;">Save</button>
-                <button onclick="hideNewAddressForm()" style="flex: 1; background: #ddd; color: #333; border: none; padding: 10px; border-radius: 6px; font-weight: bold;">Cancel</button>
-            </div>
+<div id="newAddressDetailsModal" class="modal">
+    <div class="box" style="height: auto; margin-top: auto;">
+        <h3 style="margin-top:0;">Add Address Details</h3>
+        
+        <div style="background: #f9f9f9; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; border: 1px solid #eee;">
+            <b style="color: #666;">Map Location:</b><br>
+            <span id="newAddrMapText" style="color: #333; line-height: 1.4;"></span>
         </div>
-
-        <button class="btn-primary" onclick="saveProfile()" style="margin-top: 10px;">Save Profile</button>
-        <button onclick="document.getElementById('profileModal').style.display='none'" style="width: 100%; background: #eee; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer;">Close</button>
+        
+        <input id="newAddrLabel" placeholder="Save as (e.g. Home, Office) *">
+        <input id="newAddrFlat" placeholder="House / Flat No, Building *">
+        <input id="newAddrLandmark" placeholder="Nearby Landmark (Optional)">
+        
+        <button class="btn-primary" onclick="saveNewAddress()">Save Address</button>
+        <button onclick="document.getElementById('newAddressDetailsModal').style.display='none'" style="width: 100%; background: #eee; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer;">Cancel</button>
     </div>
 </div>
 
@@ -185,14 +199,11 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
             <h3 style="margin-top:0;">Step 1: Delivery Address</h3>
             
             <div id="checkoutSavedAddressContainer" style="margin-bottom: 15px;">
-                <label style="font-size: 13px; font-weight: bold; color: #666; margin-bottom: 8px; display: block;">Select a saved address</label>
                 <div id="checkoutSavedAddressesList"></div>
             </div>
 
-            <div class="divider">OR USE A NEW ADDRESS</div>
-            
-            <button class="btn-location" onclick="openLocationPicker()">
-                <span id="gpsIcon">📍</span> <span id="gpsText">Set exact map location</span>
+            <button class="btn-location" onclick="openLocationPicker('checkout')">
+                <span id="gpsIcon">📍</span> <span id="gpsText">+ Add New Address</span>
             </button>
 
             <div id="specificAddressContainer" style="display: none; margin-bottom: 15px;">
@@ -202,10 +213,6 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
                 </div>
                 <input id="flatNumber" placeholder="House / Flat No, Floor, Building *" style="border: 1px solid #16a34a; background: #fff;">
                 <input id="landmark" placeholder="Nearby Landmark / Area (Optional)">
-            </div>
-
-            <div id="manualAddressContainer">
-                <textarea id="manualAddress" rows="3" placeholder="Enter Full Address Manually (House No, Building, Area, City, Landmark)" style="resize: none;" oninput="clearSavedAddressSelection()"></textarea>
             </div>
 
             <div class="divider">CONTACT DETAILS</div>
@@ -224,8 +231,7 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
                 <span style="font-weight: bold; color: #16a34a; font-size: 18px;">₹<span id="finalPayAmount"></span></span>
             </div>
 
-            <div id="paymentOptionsContainer">
-                </div>
+            <div id="paymentOptionsContainer"></div>
 
             <div id="upiPaymentSection" style="display: none; background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #16a34a; margin-bottom: 15px; text-align: center;">
                 <p style="margin: 0 0 10px 0; font-weight: bold; color: #16a34a;">Scan & Pay ₹<span id="upiAmountText"></span></p>
@@ -248,7 +254,6 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
     <div class="box" style="height: 80%; display: flex; flex-direction: column; padding: 0;">
         <div style="padding: 15px; background: white; border-radius: 20px 20px 0 0; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <h3 style="margin: 0;">Adjust Your Location</h3>
-            <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">Move the map to place the pin at your exact spot.</p>
         </div>
         <div style="position: relative; flex: 1; width: 100%;">
             <div id="pickerMap" style="width: 100%; height: 100%;"></div>
@@ -278,12 +283,8 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
                 <span id="eta" style="background: #eefce9; color: #16a34a; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 14px;">Calc ETA...</span>
             </div>
             <div id="statusText" style="color:#666; font-size: 14px; margin-bottom: 15px;">Connecting to driver GPS...</div>
-            
             <div id="noDriverText" style="text-align:center; color:#666; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Assigning a delivery partner soon...</div>
-            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">
-                📞 Call Partner
-            </a>
-            
+            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">📞 Call Partner</a>
             <button onclick="document.getElementById('mapModal').style.display='none'" style="width:100%; padding:10px; background:#ddd; color:#333; border:none; border-radius:8px; margin-top:10px; cursor:pointer; font-weight:bold;">Close Map</button>
         </div>
     </div>
@@ -295,6 +296,10 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
+// GLOBAL VARIABLES (Fixes Geocoder Reference Error)
+let pickerMap = null;
+let geocoder = null;
+
 firebase.initializeApp({
     apiKey: "AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
     authDomain: "chicken-delivery-app-9e4f6.firebaseapp.com",
@@ -313,7 +318,8 @@ let deliveryLat = null; let deliveryLng = null;
 let isStoreOpen = true; let allowCOD = true; let allowOnline = true;
 let userHiddenTracker = false;
 let selectedPaymentMethod = ""; 
-let selectedSavedAddressIndex = -1; // -1 means none selected
+let selectedSavedAddressIndex = -1; 
+let mapContext = 'checkout'; // Tracks if map is for checkout or address book
 
 // PROMO
 let promoVisits = parseInt(localStorage.getItem("promoVisits") || "0"); promoVisits++; localStorage.setItem("promoVisits", promoVisits);
@@ -345,13 +351,12 @@ auth.onAuthStateChanged(u => {
         db.collection("users").doc(u.uid).onSnapshot(doc => {
             if(doc.exists) { 
                 userProfile = doc.data(); 
-                if(!userProfile.addresses) userProfile.addresses = []; // Ensure array exists
+                if(!userProfile.addresses) userProfile.addresses = []; 
             } 
             else { userProfile = { name: u.displayName, phone: "", addresses: [] }; }
             
             document.getElementById('profileName').value = userProfile.name || "";
             document.getElementById('profilePhone').value = userProfile.phone || "";
-            renderProfileAddresses();
         });
         startBackgroundOrderTracking();
     } else {
@@ -367,40 +372,22 @@ auth.onAuthStateChanged(u => {
 ========================= */
 function openProfile() { if(!user) { alert("Please login first"); return; } closeMenu(); document.getElementById('profileModal').style.display = "flex"; }
 
-function showNewAddressForm() { document.getElementById('newAddressForm').style.display = "block"; }
-function hideNewAddressForm() { document.getElementById('newAddressForm').style.display = "none"; document.getElementById('newAddrLabel').value = ""; document.getElementById('newAddrText').value = ""; }
-
-function saveNewAddress() {
-    let label = document.getElementById('newAddrLabel').value.trim() || "Address";
-    let text = document.getElementById('newAddrText').value.trim();
-    if(!text) { alert("Please enter an address."); return; }
-
-    let newAddr = { label: label, text: text, id: Date.now().toString() };
-    userProfile.addresses.push(newAddr);
-    saveProfileData();
-    hideNewAddressForm();
-}
-
-function removeAddress(id) {
-    if(confirm("Are you sure you want to remove this saved address?")) {
-        userProfile.addresses = userProfile.addresses.filter(a => a.id !== id);
-        saveProfileData();
-    }
-}
-
-function saveProfileData() {
+function saveProfile() {
     const name = document.getElementById('profileName').value.trim();
     const phone = document.getElementById('profilePhone').value.trim();
-    db.collection("users").doc(user.uid).set({ name, phone, addresses: userProfile.addresses }, { merge: true });
+    db.collection("users").doc(user.uid).set({ name, phone }, { merge: true });
+    showToast("Profile saved!"); document.getElementById('profileModal').style.display = "none";
 }
 
-function saveProfile() {
-    saveProfileData();
-    showToast("Profile & Addresses saved successfully!");
-    document.getElementById('profileModal').style.display = "none";
+// ADDRESS BOOK MANAGEMENT
+function openAddresses() {
+    if(!user) { alert("Please login first"); return; }
+    closeMenu(); 
+    renderAddressBookList();
+    document.getElementById('addressesModal').style.display = "flex"; 
 }
 
-function renderProfileAddresses() {
+function renderAddressBookList() {
     const list = document.getElementById('profileAddressList');
     list.innerHTML = "";
     if(!userProfile.addresses || userProfile.addresses.length === 0) {
@@ -409,14 +396,55 @@ function renderProfileAddresses() {
     }
     userProfile.addresses.forEach(a => {
         list.innerHTML += `
-        <div style="border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:flex-start;">
+        <div style="border: 1px solid #ddd; background: white; border-radius: 8px; padding: 12px; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-                <b style="font-size:14px; color:#333;">🏠 ${a.label}</b>
-                <div style="font-size:13px; color:#666; margin-top:4px;">${a.text}</div>
+                <b style="font-size:15px; color:#333;">🏠 ${a.label}</b>
+                <div style="font-size:13px; color:#666; margin-top:4px;">${a.flat ? a.flat + ', ' : ''}${a.landmark ? a.landmark + ', ' : ''}${a.text}</div>
             </div>
             <button onclick="removeAddress('${a.id}')" style="background:transparent; border:none; color:#dc2626; font-size:18px; cursor:pointer;">✕</button>
         </div>`;
     });
+}
+
+function removeAddress(id) {
+    if(confirm("Remove this saved address?")) {
+        userProfile.addresses = userProfile.addresses.filter(a => a.id !== id);
+        db.collection("users").doc(user.uid).set({ addresses: userProfile.addresses }, { merge: true });
+        renderAddressBookList();
+    }
+}
+
+function startAddNewAddress() {
+    document.getElementById('addressesModal').style.display = "none";
+    openLocationPicker('addressBook');
+}
+
+function saveNewAddress() {
+    let label = document.getElementById('newAddrLabel').value.trim() || "Address";
+    let flat = document.getElementById('newAddrFlat').value.trim();
+    let landmark = document.getElementById('newAddrLandmark').value.trim();
+    let mapText = document.getElementById('newAddrMapText').innerText;
+    
+    if(!flat) { alert("Please enter House / Flat Number."); return; }
+
+    let newAddr = { 
+        id: Date.now().toString(),
+        label: label, 
+        flat: flat,
+        landmark: landmark,
+        text: mapText,
+        lat: deliveryLat,
+        lng: deliveryLng
+    };
+    
+    userProfile.addresses.push(newAddr);
+    db.collection("users").doc(user.uid).set({ addresses: userProfile.addresses }, { merge: true });
+    
+    document.getElementById('newAddressDetailsModal').style.display = "none";
+    document.getElementById('newAddrLabel').value = ""; document.getElementById('newAddrFlat').value = ""; document.getElementById('newAddrLandmark').value = "";
+    
+    showToast("Address saved!");
+    openAddresses();
 }
 
 /* =========================
@@ -497,11 +525,11 @@ function updateCart() {
     const cartItems = document.getElementById('cartItems'); cartItems.innerHTML = ""; let total = 0;
     for(let id in cart) { let c = cart[id]; let sub = c.price * c.qty; total += sub; cartItems.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:15px;"><div style="display:flex; align-items:center; gap: 10px;"><span style="border:1px solid #16a34a; color:#16a34a; padding: 2px 6px; border-radius:4px; font-size:12px; font-weight:bold;">${c.qty}</span><span>${c.name}</span></div><b>₹${sub}</b></div>`; }
     document.getElementById("total").innerText = total;
-    document.getElementById("finalPayAmount").innerText = total; // For Step 2 UI
+    document.getElementById("finalPayAmount").innerText = total; 
 }
 
 /* =========================
-   CHECKOUT FLOW (NEW)
+   CHECKOUT FLOW
 ========================= */
 function openCart() { if(!isStoreOpen) { alert("Store is currently closed."); return; } document.getElementById('cartModal').style.display = "flex"; }
 
@@ -509,21 +537,15 @@ function checkout() {
     if(!user) { alert("Please login first"); return; }
     document.getElementById('cartModal').style.display = "none"; 
     
-    // Setup Profile Defaults
     document.getElementById('checkoutName').value = userProfile.name || user.displayName || ""; 
     document.getElementById('checkoutPhone').value = userProfile.phone || "";
     
-    // Reset selections
-    selectedPaymentMethod = "";
-    selectedSavedAddressIndex = -1;
-    document.getElementById('manualAddress').value = "";
+    selectedPaymentMethod = ""; selectedSavedAddressIndex = -1;
     
     renderCheckoutAddresses();
 
-    // Show Step 1, Hide Step 2
     document.getElementById('checkoutStepAddress').style.display = "block";
     document.getElementById('checkoutStepPayment').style.display = "none";
-    
     document.getElementById('checkoutModal').style.display = "flex"; 
 }
 
@@ -538,11 +560,13 @@ function renderCheckoutAddresses() {
     let html = "";
     userProfile.addresses.forEach((a, index) => {
         let isActive = (index === selectedSavedAddressIndex) ? "active" : "";
-        let checkIcon = (index === selectedSavedAddressIndex) ? "✅ " : "🏠 ";
+        let iconHtml = (index === selectedSavedAddressIndex) ? "✅ " : "📍 ";
+        
         html += `
         <div class="address-card ${isActive}" onclick="selectCheckoutAddress(${index})">
-            <div class="address-label">${checkIcon}${a.label}</div>
-            <div class="address-text">${a.text}</div>
+            <div class="address-label">${iconHtml}${a.label}</div>
+            <div class="address-text">${a.flat ? a.flat + ', ' : ''}${a.landmark ? a.landmark + ', ' : ''}${a.text}</div>
+            <div style="font-size:12px; color:#16a34a; font-weight:bold; margin-top:8px;">Deliver to this address ➔</div>
         </div>`;
     });
     list.innerHTML = html;
@@ -550,55 +574,32 @@ function renderCheckoutAddresses() {
 
 function selectCheckoutAddress(index) {
     selectedSavedAddressIndex = index;
-    // Clear manual inputs if they click a saved one
-    document.getElementById('manualAddress').value = "";
     document.getElementById('specificAddressContainer').style.display = "none";
     deliveryLat = null; deliveryLng = null;
     renderCheckoutAddresses();
 }
 
-function clearSavedAddressSelection() {
-    // If they start typing in the manual box, unselect the saved address cards
-    selectedSavedAddressIndex = -1;
-    renderCheckoutAddresses();
-}
-
 function goToPaymentStep() {
-    // 1. Validate Form
     const name = document.getElementById('checkoutName').value.trim();
     const phone = document.getElementById('checkoutPhone').value.trim();
     if(!name || !phone) { alert("Please enter your Contact Details (Name & Phone)."); return; }
 
-    // 2. Validate Address
-    let manualInput = document.getElementById('manualAddress').value.trim();
     let flatNum = document.getElementById('flatNumber').value.trim();
     
     if(selectedSavedAddressIndex === -1) {
-        if (deliveryLat && deliveryLng) {
-            if(!flatNum) { alert("Please enter your House/Flat Number for the Map Pin!"); return; }
-        } else if (!manualInput) {
-            alert("Please select a saved address OR enter a new one manually."); return;
+        if (!deliveryLat || !deliveryLng) {
+            alert("Please select a saved address or Add a New Map Location."); return;
+        }
+        if(!flatNum) {
+            alert("Please enter House / Flat Number for your map location."); return;
         }
     }
 
-    // 3. Render Payment Buttons based on Admin Settings
     const payContainer = document.getElementById('paymentOptionsContainer');
     payContainer.innerHTML = "";
-    
-    if(allowCOD) {
-        payContainer.innerHTML += `
-        <div class="pay-card" id="payCardCOD" onclick="selectPaymentMethodUI('COD')">
-            <span class="pay-icon">💵</span> Cash on Delivery
-        </div>`;
-    }
-    if(allowOnline) {
-        payContainer.innerHTML += `
-        <div class="pay-card" id="payCardONLINE" onclick="selectPaymentMethodUI('ONLINE')">
-            <span class="pay-icon">📱</span> Pay Online (UPI)
-        </div>`;
-    }
+    if(allowCOD) { payContainer.innerHTML += `<div class="pay-card" id="payCardCOD" onclick="selectPaymentMethodUI('COD')"><span class="pay-icon">💵</span> Cash on Delivery</div>`; }
+    if(allowOnline) { payContainer.innerHTML += `<div class="pay-card" id="payCardONLINE" onclick="selectPaymentMethodUI('ONLINE')"><span class="pay-icon">📱</span> Pay Online (UPI)</div>`; }
 
-    // 4. Slide UI
     document.getElementById('checkoutStepAddress').style.display = "none";
     document.getElementById('checkoutStepPayment').style.display = "block";
 }
@@ -610,27 +611,25 @@ function backToAddressStep() {
 
 function selectPaymentMethodUI(method) {
     selectedPaymentMethod = method;
-    
-    // Reset UI Cards
     if(document.getElementById('payCardCOD')) document.getElementById('payCardCOD').classList.remove('active');
     if(document.getElementById('payCardONLINE')) document.getElementById('payCardONLINE').classList.remove('active');
-    
-    // Activate selected
     document.getElementById(`payCard${method}`).classList.add('active');
 
-    // Handle UPI expansion
     const upiSection = document.getElementById('upiPaymentSection');
     if(method === "ONLINE") {
-        if(!vendorUpiId) { alert("Online payment is currently unavailable. Please select Cash on Delivery."); document.getElementById('payment').value = ""; upiSection.style.display = "none"; return; }
-        upiSection.style.display = "block"; let totalDisplay = 0; for(let id in cart) { totalDisplay += cart[id].price * cart[id].qty; } document.getElementById('upiAmountText').innerText = totalDisplay;
-        document.getElementById('upiAppBtn').onclick = () => { let currentTotal = 0; for(let id in cart) { currentTotal += cart[id].price * cart[id].qty; } const upiLink = `upi://pay?pa=${vendorUpiId}&pn=Order%20Payment&am=${currentTotal}&cu=INR`; window.location.href = upiLink; };
+        if(!vendorUpiId) { alert("Online payment is currently unavailable."); return; }
+        upiSection.style.display = "block"; 
+        let totalDisplay = 0; for(let id in cart) { totalDisplay += cart[id].price * cart[id].qty; } 
+        document.getElementById('upiAmountText').innerText = totalDisplay;
+        document.getElementById('upiAppBtn').onclick = () => { window.location.href = `upi://pay?pa=${vendorUpiId}&pn=Order%20Payment&am=${totalDisplay}&cu=INR`; };
     } else { upiSection.style.display = "none"; }
 }
 
-// LOCATION PICKER (Updated to add GPS centering button)
-function openLocationPicker() {
-    document.getElementById('locationPickerModal').style.display = "flex"; document.getElementById('pickedAddressText').innerText = "Locating your device...";
-    // Initial load: try to find current location immediately
+// LOCATION PICKER
+function openLocationPicker(context) {
+    mapContext = context; // 'checkout' or 'addressBook'
+    document.getElementById('locationPickerModal').style.display = "flex"; 
+    document.getElementById('pickedAddressText').innerText = "Locating your device...";
     centerMapOnUserGPS();
 }
 
@@ -640,29 +639,44 @@ function centerMapOnUserGPS() {
         navigator.geolocation.getCurrentPosition(pos => { 
             initPickerMap(pos.coords.latitude, pos.coords.longitude); 
         }, err => { 
-            showToast("⚠️ GPS access denied. Please adjust the pin manually.");
-            initPickerMap(17.385, 78.4867); // Default Hyderabad center
+            showToast("⚠️ GPS access denied. Please drag the pin manually.");
+            initPickerMap(17.385, 78.4867); 
         }, { enableHighAccuracy: true, timeout: 5000 }); 
-    } else { 
-        initPickerMap(17.385, 78.4867); // Default
-    }
+    } else { initPickerMap(17.385, 78.4867); }
 }
 
 function initPickerMap(lat, lng) {
+    if (typeof google === 'undefined') { showToast("⚠️ Maps loading, please wait..."); return; }
     const centerPos = { lat: lat, lng: lng }; deliveryLat = lat; deliveryLng = lng;
+    
     if(!geocoder) geocoder = new google.maps.Geocoder();
     pickerMap = new google.maps.Map(document.getElementById("pickerMap"), { center: centerPos, zoom: 17, disableDefaultUI: true, zoomControl: true });
+    
     geocodePosition(pickerMap.getCenter());
     google.maps.event.addListener(pickerMap, 'dragstart', function() { document.getElementById('pickedAddressText').innerText = "Moving pin..."; });
     google.maps.event.addListener(pickerMap, 'idle', function() { deliveryLat = pickerMap.getCenter().lat(); deliveryLng = pickerMap.getCenter().lng(); geocodePosition(pickerMap.getCenter()); });
 }
 
 function geocodePosition(pos) { geocoder.geocode({ latLng: pos }, function(responses, status) { if (status === 'OK' && responses && responses.length > 0) { document.getElementById('pickedAddressText').innerText = responses[0].formatted_address; } else { document.getElementById('pickedAddressText').innerText = "Area address not found. Pin location saved."; } }); }
-function confirmPickedLocation() { document.getElementById('locationPickerModal').style.display = "none"; document.getElementById('gpsIcon').innerText = "✅"; document.getElementById('gpsText').innerText = "Map Location Saved!"; document.getElementById('manualAddressContainer').style.display = "none"; document.getElementById('specificAddressContainer').style.display = "block"; document.getElementById('displayGeocodedAddress').innerText = document.getElementById('pickedAddressText').innerText; clearSavedAddressSelection(); }
 
+function confirmPickedLocation() { 
+    document.getElementById('locationPickerModal').style.display = "none"; 
+    
+    if(mapContext === 'checkout') {
+        selectedSavedAddressIndex = -1; // Deselect saved cards
+        renderCheckoutAddresses();
+        document.getElementById('gpsIcon').innerText = "✅"; document.getElementById('gpsText').innerText = "Map Location Saved!"; 
+        document.getElementById('specificAddressContainer').style.display = "block"; 
+        document.getElementById('displayGeocodedAddress').innerText = document.getElementById('pickedAddressText').innerText;
+    } else {
+        // Address Book Context
+        document.getElementById('newAddressDetailsModal').style.display = "flex";
+        document.getElementById('newAddrMapText').innerText = document.getElementById('pickedAddressText').innerText;
+    }
+}
 
 /* =========================
-   SECURE PLACE ORDER (Updated)
+   SECURE PLACE ORDER
 ========================= */
 async function placeOrder() {
     if(!isStoreOpen) { alert("Store is closed."); return; } if(!user) { alert("Please login first"); return; }
@@ -672,30 +686,23 @@ async function placeOrder() {
     const orderPhone = document.getElementById('checkoutPhone').value.trim();
     if(!orderName || !orderPhone) { alert("Please enter your Contact Details (Name & Phone)."); return; }
     
-    let finalAddressText = ""; 
-    let finalLat = deliveryLat;
-    let finalLng = deliveryLng;
+    let finalAddressText = ""; let finalLat = null; let finalLng = null;
     
-    // Resolve which address they used
     if (selectedSavedAddressIndex !== -1) {
-        // SAVED ADDRESS
-        finalAddressText = `Saved: ${userProfile.addresses[selectedSavedAddressIndex].label} - ${userProfile.addresses[selectedSavedAddressIndex].text}`;
+        let addr = userProfile.addresses[selectedSavedAddressIndex];
+        finalAddressText = `${addr.flat ? addr.flat + ', ' : ''}${addr.landmark ? addr.landmark + ', ' : ''}${addr.text} [Saved: ${addr.label}]`;
+        finalLat = addr.lat; finalLng = addr.lng;
     } else if (deliveryLat && deliveryLng) {
-        // MAP PIN ADDRESS
         const flatNum = document.getElementById('flatNumber').value.trim();
         const landmark = document.getElementById('landmark').value.trim();
         const geocodedText = document.getElementById('displayGeocodedAddress').innerText;
         finalAddressText = `${flatNum}${landmark ? `, Landmark: ${landmark}` : ""}, ${geocodedText} (Map Pin Provided)`;
+        finalLat = deliveryLat; finalLng = deliveryLng;
     } else {
-        // FULL MANUAL TEXT ADDRESS
-        const manualInput = document.getElementById('manualAddress').value.trim();
-        finalAddressText = `${manualInput} (Manual Text Entry)`;
+        alert("Please provide a delivery address."); return;
     }
 
-    if(!finalAddressText) { alert("Delivery address is required."); return; }
-
-    let screenshotUrl = null; 
-    const fileInput = document.getElementById('paymentScreenshot');
+    let screenshotUrl = null; const fileInput = document.getElementById('paymentScreenshot');
     if (selectedPaymentMethod === "ONLINE") { if (fileInput.files.length === 0) { alert("Please upload the payment screenshot before confirming."); return; } }
     
     const btn = document.getElementById('placeOrderBtn'); btn.innerText = "Processing Securely..."; btn.disabled = true; btn.style.opacity = "0.7";
@@ -740,15 +747,12 @@ async function placeOrder() {
             });
         });
         
-        notificationAudio.play().catch(e => console.log(e));
         showToast("🎉 Order placed successfully!");
-        
-        // Reset Everything
         cart = {}; deliveryLat = null; deliveryLng = null; selectedPaymentMethod = ""; selectedSavedAddressIndex = -1;
         document.getElementById('checkoutModal').style.display = "none"; 
         document.getElementById('checkoutStepPayment').style.display = "none";
         document.getElementById('checkoutStepAddress').style.display = "block";
-        document.getElementById('manualAddress').value = ""; document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('manualAddressContainer').style.display = "block"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('gpsText').innerText = "Set exact map location"; document.getElementById('gpsIcon').innerText = "📍"; render();
+        document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('gpsText').innerText = "+ Add New Address"; document.getElementById('gpsIcon').innerText = "📍"; render();
     
     } catch (error) { 
         console.error(error); 
