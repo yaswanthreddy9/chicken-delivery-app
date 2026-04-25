@@ -16,7 +16,7 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 900; }
 
 /* ANNOUNCEMENT BAR */
-.marquee-container { display: none; overflow: hidden; white-space: nowrap; background: #fef08a; color: #854d0e; padding: 8px 15px; font-size: 14px; font-weight: bold; border-bottom: 1px solid #fde047; }
+.marquee-container { display: none; overflow: hidden; white-space: nowrap; padding: 8px 15px; font-size: 14px; font-weight: bold; border-bottom: 1px solid rgba(0,0,0,0.1); }
 .marquee-text { display: inline-block; animation: scrollText 12s linear infinite; }
 @keyframes scrollText { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
 
@@ -30,6 +30,7 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 
 /* BLINKIT-STYLE ACTIVE DELIVERIES BANNER */
 #activeDeliveriesBar { display: none; position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 400px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); z-index: 40; border: 1px solid #eee; align-items: center; padding: 10px 15px; box-sizing: border-box; }
+#closeTrackerBtn { position: absolute; top: -8px; right: -8px; background: white; color: #555; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 22px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 1px solid #ccc; z-index: 50; font-size: 12px; }
 #scrollerContainer { flex: 1; overflow: hidden; position: relative; }
 #activeDeliveriesScroller { display: flex; transition: transform 0.5s ease-in-out; }
 .delivery-slide { min-width: 100%; flex-shrink: 0; display: flex; align-items: center; gap: 12px; cursor: pointer; }
@@ -47,7 +48,8 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 .menu-card { display: flex; justify-content: space-between; background: white; padding: 15px; margin-bottom: 15px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
 .menu-info { flex: 1; padding-right: 15px; }
 .menu-title { font-size: 17px; font-weight: bold; color: #333; margin-bottom: 4px; }
-.menu-price { font-size: 15px; font-weight: bold; color: #555; margin-bottom: 6px; }
+.menu-price { font-size: 15px; font-weight: bold; color: #555; margin-bottom: 4px; }
+.menu-desc { font-size: 13px; color: #888; line-height: 1.3; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .menu-img-wrapper { position: relative; width: 130px; height: 130px; flex-shrink: 0; }
 .menu-img-wrapper img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; border: 1px solid #eee; }
 
@@ -112,6 +114,7 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
 </div>
 
 <div id="activeDeliveriesBar">
+    <div id="closeTrackerBtn" onclick="hideTracker()">✕</div>
     <div id="scrollerContainer">
         <div id="activeDeliveriesScroller"></div>
     </div>
@@ -267,6 +270,7 @@ let deliveryLng = null;
 let isStoreOpen = true;
 let allowCOD = true;
 let allowOnline = true;
+let userHiddenTracker = false;
 
 // Custom Audio Player
 let notificationAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
@@ -324,6 +328,11 @@ function showToast(message) {
     setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 5000);
 }
 
+function hideTracker() {
+    document.getElementById('activeDeliveriesBar').style.display = 'none';
+    userHiddenTracker = true; // Prevents it from popping up again until page refresh
+}
+
 function startBackgroundOrderTracking() {
     db.collection("orders").where("userId", "==", user.uid).onSnapshot(snap => {
         let outForDeliveryOrders = [];
@@ -336,6 +345,7 @@ function startBackgroundOrderTracking() {
                 if(o.status === "preparing") showToast(`🔥 Order #${displayId} is now Preparing!`);
                 if(o.status === "out for delivery") showToast(`🚴 Order #${displayId} is Out for Delivery!`);
                 if(o.status === "delivered") showToast(`✅ Order #${displayId} has been Delivered!`);
+                if(o.status === "rejected") showToast(`❌ Order #${displayId} was declined by the store.`);
             }
             knownOrderStatuses[doc.id] = o.status;
 
@@ -353,7 +363,7 @@ function renderActiveDeliveries(orders) {
     const scroller = document.getElementById('activeDeliveriesScroller');
     const pagContainer = document.getElementById('paginationContainer');
     
-    if (orders.length === 0) {
+    if (orders.length === 0 || userHiddenTracker) {
         bar.style.display = 'none';
         if (activeDeliveryInterval) clearInterval(activeDeliveryInterval);
         return;
@@ -418,6 +428,11 @@ db.collection("settings").doc("store").onSnapshot(doc => {
         if(data.announcementText && data.announcementText.trim() !== "") {
             announcementBar.style.display = "block";
             document.getElementById('announcementText').innerText = data.announcementText;
+            
+            // Apply Dynamic Admin Colors
+            announcementBar.style.backgroundColor = data.announcementBgColor || "#fef08a";
+            announcementBar.style.color = data.announcementTextColor || "#854d0e";
+            announcementBar.style.borderBottomColor = data.announcementTextColor || "#fde047";
         } else {
             announcementBar.style.display = "none";
         }
@@ -454,11 +469,16 @@ db.collection("items").onSnapshot(snap => {
     document.getElementById('itemsList').innerHTML = ""; itemsCache = {};
     snap.forEach(doc => {
         let i = doc.data(); itemsCache[doc.id] = i;
+        
+        // Dynamic Description injected here
+        let descHTML = i.description ? `<div class="menu-desc">${i.description}</div>` : '';
+
         document.getElementById('itemsList').innerHTML += `
         <div class="menu-card">
             <div class="menu-info">
                 <div class="menu-title">${i.name}</div>
                 <div class="menu-price">₹${i.price}</div>
+                ${descHTML}
             </div>
             <div class="menu-img-wrapper">
                 <img src="${i.image}" onerror="this.src='https://via.placeholder.com/150'">
@@ -551,7 +571,11 @@ async function placeOrder() {
         const counterRef = db.collection("settings").doc("orderCounter");
         let newOrderNumber = await db.runTransaction(async (transaction) => { const counterDoc = await transaction.get(counterRef); let nextNum = 1000; if (counterDoc.exists && counterDoc.data().lastNumber) { nextNum = counterDoc.data().lastNumber + 1; } transaction.set(counterRef, { lastNumber: nextNum }, { merge: true }); return nextNum; });
         await db.collection("orders").add({ userId: user.uid, userName: orderName, userPhone: orderPhone, orderNumber: newOrderNumber, items, total, address: finalAddressText, deliveryLocation: (deliveryLat && deliveryLng) ? { lat: deliveryLat, lng: deliveryLng } : null, payment: payment, paymentScreenshot: screenshotUrl, status: "pending", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        alert("Order placed successfully!");
+        
+        // FIX: Order placed confirmation sound
+        notificationAudio.play().catch(e => console.log("Audio blocked by browser", e));
+        showToast("🎉 Order placed successfully!");
+        
         cart = {}; deliveryLat = null; deliveryLng = null; document.getElementById('checkoutModal').style.display = "none"; document.getElementById('manualAddress').value = ""; document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('manualAddressContainer').style.display = "block"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('payment').value = ""; document.getElementById('gpsText').innerText = "Set exact map location"; document.getElementById('gpsIcon').innerText = "📍"; render();
     } catch (error) { console.error("Error placing order: ", error); alert("Something went wrong. Please check your connection and try again."); } finally { btn.innerText = "Place Order"; btn.disabled = false; btn.style.opacity = "1"; }
 }
@@ -562,7 +586,11 @@ function openOrders() {
         let data = []; snap.forEach(doc => data.push({id: doc.id, ...doc.data()})); data.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
         document.getElementById('ordersList').innerHTML = "";
         data.forEach(o => {
-            let itemsText = o.items ? o.items.map(i => `${i.qty}x ${i.name}`).join(", ") : "No items"; let color = o.status === "delivered" ? "#16a34a" : (o.status === "out for delivery" ? "#2563eb" : "#f59e0b");
+            let itemsText = o.items ? o.items.map(i => `${i.qty}x ${i.name}`).join(", ") : "No items"; 
+            
+            // Dynamic Color based on Rejected / Delivered / Out for Delivery
+            let color = o.status === "delivered" ? "#16a34a" : (o.status === "rejected" ? "#dc2626" : (o.status === "out for delivery" ? "#2563eb" : "#f59e0b"));
+            
             let savedLat = o.deliveryLocation ? o.deliveryLocation.lat : null; let savedLng = o.deliveryLocation ? o.deliveryLocation.lng : null; let displayId = o.orderNumber ? o.orderNumber : o.id.slice(0,6).toUpperCase();
             let trackBtn = o.status === "out for delivery" ? `<button onclick="trackOrder('${o.id}', ${savedLat}, ${savedLng})" style="margin-top:12px; width:100%; padding:12px; background:#eefce9; color:#16a34a; border:1px solid #16a34a; border-radius:8px; cursor:pointer; font-weight:bold; font-size:15px;">📍 Track Live Order</button>` : "";
             document.getElementById('ordersList').innerHTML += `<div style="background:#fff; padding:15px; margin-bottom:15px; border-radius:12px; border: 1px solid #eaeaea;"><div style="display:flex; justify-content:space-between; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;"><b style="color: #444;">Order #${displayId}</b><span style="color:${color}; font-weight:bold; text-transform: capitalize;">${o.status}</span></div><div style="color:#555; font-size: 14px; line-height: 1.5;">${itemsText}</div><div style="margin-top:10px; font-weight:bold; font-size: 16px;">₹${o.total}</div>${trackBtn}</div>`;
@@ -575,7 +603,7 @@ window.onclick = e => { if(e.target.classList.contains("modal")) { e.target.styl
 let map, deliveryMarker, userMarker; let directionsService, directionsRenderer; let unsubscribeTracking; let routeDrawn = false; 
 
 function trackOrder(orderId, destinationLat, destinationLng) {
-    document.getElementById('activeDeliveriesBar').style.display = 'none'; 
+    // Removed the code that auto-hid the banner here so it stays persistent!
     document.getElementById('mapModal').style.display = "flex"; document.getElementById('statusText').innerText = "Connecting to driver..."; routeDrawn = false;
     let dropOffLocation; if (destinationLat && destinationLng) { dropOffLocation = { lat: destinationLat, lng: destinationLng }; } else { dropOffLocation = { lat: 17.385, lng: 78.4867 }; }
     initializeMapTracking(orderId, dropOffLocation);
