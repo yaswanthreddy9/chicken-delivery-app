@@ -108,7 +108,7 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 </div>
 
 <div id="storeClosedBanner" style="display: none; background: #dc2626; color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-    🚫 Store is currently closed.
+    🚫 Store is currently closed. We are not accepting orders right now.
 </div>
 
 <div id="overlay" onclick="closeMenu()"></div>
@@ -205,7 +205,7 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
             </div>
 
             <div id="manualAddressContainer">
-                <textarea id="manualAddress" rows="3" placeholder="Enter Full Address Manually" style="resize: none;" oninput="clearSavedAddressSelection()"></textarea>
+                <textarea id="manualAddress" rows="3" placeholder="Enter Full Address Manually (House No, Building, Area, City, Landmark)" style="resize: none;" oninput="clearSavedAddressSelection()"></textarea>
             </div>
 
             <div class="divider">CONTACT DETAILS</div>
@@ -248,10 +248,12 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
     <div class="box" style="height: 80%; display: flex; flex-direction: column; padding: 0;">
         <div style="padding: 15px; background: white; border-radius: 20px 20px 0 0; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <h3 style="margin: 0;">Adjust Your Location</h3>
+            <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">Move the map to place the pin at your exact spot.</p>
         </div>
         <div style="position: relative; flex: 1; width: 100%;">
             <div id="pickerMap" style="width: 100%; height: 100%;"></div>
             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; pointer-events: none; z-index: 10; text-shadow: 0px 4px 4px rgba(0,0,0,0.3);">📍</div>
+            <button onclick="centerMapOnUserGPS()" style="position: absolute; bottom: 20px; right: 20px; background: white; border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 20; font-size: 24px;">🧭</button>
         </div>
         <div style="padding: 15px; background: white; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);">
             <div id="pickedAddressText" style="font-size: 14px; color: #333; margin-bottom: 10px; font-weight: bold; min-height: 20px;">Fetching address...</div>
@@ -343,7 +345,7 @@ auth.onAuthStateChanged(u => {
         db.collection("users").doc(u.uid).onSnapshot(doc => {
             if(doc.exists) { 
                 userProfile = doc.data(); 
-                if(!userProfile.addresses) userProfile.addresses = [];
+                if(!userProfile.addresses) userProfile.addresses = []; // Ensure array exists
             } 
             else { userProfile = { name: u.displayName, phone: "", addresses: [] }; }
             
@@ -380,7 +382,7 @@ function saveNewAddress() {
 }
 
 function removeAddress(id) {
-    if(confirm("Remove this address?")) {
+    if(confirm("Are you sure you want to remove this saved address?")) {
         userProfile.addresses = userProfile.addresses.filter(a => a.id !== id);
         saveProfileData();
     }
@@ -394,14 +396,14 @@ function saveProfileData() {
 
 function saveProfile() {
     saveProfileData();
-    showToast("Profile & Addresses saved!");
+    showToast("Profile & Addresses saved successfully!");
     document.getElementById('profileModal').style.display = "none";
 }
 
 function renderProfileAddresses() {
     const list = document.getElementById('profileAddressList');
     list.innerHTML = "";
-    if(userProfile.addresses.length === 0) {
+    if(!userProfile.addresses || userProfile.addresses.length === 0) {
         list.innerHTML = "<div style='color:#888; font-size:13px; font-style:italic;'>No saved addresses yet.</div>";
         return;
     }
@@ -409,7 +411,7 @@ function renderProfileAddresses() {
         list.innerHTML += `
         <div style="border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-                <b style="font-size:14px; color:#333;">${a.label}</b>
+                <b style="font-size:14px; color:#333;">🏠 ${a.label}</b>
                 <div style="font-size:13px; color:#666; margin-top:4px;">${a.text}</div>
             </div>
             <button onclick="removeAddress('${a.id}')" style="background:transparent; border:none; color:#dc2626; font-size:18px; cursor:pointer;">✕</button>
@@ -619,58 +621,82 @@ function selectPaymentMethodUI(method) {
     // Handle UPI expansion
     const upiSection = document.getElementById('upiPaymentSection');
     if(method === "ONLINE") {
-        if(!vendorUpiId) { alert("Online payment is currently unavailable."); return; }
-        upiSection.style.display = "block"; 
-        let totalDisplay = 0; for(let id in cart) { totalDisplay += cart[id].price * cart[id].qty; } 
-        document.getElementById('upiAmountText').innerText = totalDisplay;
-        document.getElementById('upiAppBtn').onclick = () => { window.location.href = `upi://pay?pa=${vendorUpiId}&pn=Order%20Payment&am=${totalDisplay}&cu=INR`; };
-    } else {
-        upiSection.style.display = "none";
+        if(!vendorUpiId) { alert("Online payment is currently unavailable. Please select Cash on Delivery."); document.getElementById('payment').value = ""; upiSection.style.display = "none"; return; }
+        upiSection.style.display = "block"; let totalDisplay = 0; for(let id in cart) { totalDisplay += cart[id].price * cart[id].qty; } document.getElementById('upiAmountText').innerText = totalDisplay;
+        document.getElementById('upiAppBtn').onclick = () => { let currentTotal = 0; for(let id in cart) { currentTotal += cart[id].price * cart[id].qty; } const upiLink = `upi://pay?pa=${vendorUpiId}&pn=Order%20Payment&am=${currentTotal}&cu=INR`; window.location.href = upiLink; };
+    } else { upiSection.style.display = "none"; }
+}
+
+// LOCATION PICKER (Updated to add GPS centering button)
+function openLocationPicker() {
+    document.getElementById('locationPickerModal').style.display = "flex"; document.getElementById('pickedAddressText').innerText = "Locating your device...";
+    // Initial load: try to find current location immediately
+    centerMapOnUserGPS();
+}
+
+function centerMapOnUserGPS() {
+    if (navigator.geolocation) { 
+        document.getElementById('pickedAddressText').innerText = "Finding your GPS location...";
+        navigator.geolocation.getCurrentPosition(pos => { 
+            initPickerMap(pos.coords.latitude, pos.coords.longitude); 
+        }, err => { 
+            showToast("⚠️ GPS access denied. Please adjust the pin manually.");
+            initPickerMap(17.385, 78.4867); // Default Hyderabad center
+        }, { enableHighAccuracy: true, timeout: 5000 }); 
+    } else { 
+        initPickerMap(17.385, 78.4867); // Default
     }
 }
 
-// LOCATION PICKER
-function openLocationPicker() {
-    document.getElementById('locationPickerModal').style.display = "flex"; document.getElementById('pickedAddressText').innerText = "Locating your device...";
-    if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { initPickerMap(pos.coords.latitude, pos.coords.longitude); }, err => { initPickerMap(17.385, 78.4867); }, { enableHighAccuracy: true }); } else { initPickerMap(17.385, 78.4867); }
-}
 function initPickerMap(lat, lng) {
     const centerPos = { lat: lat, lng: lng }; deliveryLat = lat; deliveryLng = lng;
     if(!geocoder) geocoder = new google.maps.Geocoder();
     pickerMap = new google.maps.Map(document.getElementById("pickerMap"), { center: centerPos, zoom: 17, disableDefaultUI: true, zoomControl: true });
     geocodePosition(pickerMap.getCenter());
-    google.maps.event.addListener(pickerMap, 'dragstart', function() { document.getElementById('pickedAddressText').innerText = "Moving..."; });
-    google.maps.event.addListener(pickerMap, 'idle', function() { deliveryLat = pickerMap.getCenter().lat(); deliveryLng = pickerMap.getCenter().lng(); document.getElementById('pickedAddressText').innerText = "Fetching address..."; geocodePosition(pickerMap.getCenter()); });
+    google.maps.event.addListener(pickerMap, 'dragstart', function() { document.getElementById('pickedAddressText').innerText = "Moving pin..."; });
+    google.maps.event.addListener(pickerMap, 'idle', function() { deliveryLat = pickerMap.getCenter().lat(); deliveryLng = pickerMap.getCenter().lng(); geocodePosition(pickerMap.getCenter()); });
 }
+
 function geocodePosition(pos) { geocoder.geocode({ latLng: pos }, function(responses, status) { if (status === 'OK' && responses && responses.length > 0) { document.getElementById('pickedAddressText').innerText = responses[0].formatted_address; } else { document.getElementById('pickedAddressText').innerText = "Area address not found. Pin location saved."; } }); }
 function confirmPickedLocation() { document.getElementById('locationPickerModal').style.display = "none"; document.getElementById('gpsIcon').innerText = "✅"; document.getElementById('gpsText').innerText = "Map Location Saved!"; document.getElementById('manualAddressContainer').style.display = "none"; document.getElementById('specificAddressContainer').style.display = "block"; document.getElementById('displayGeocodedAddress').innerText = document.getElementById('pickedAddressText').innerText; clearSavedAddressSelection(); }
 
 
 /* =========================
-   SECURE PLACE ORDER
+   SECURE PLACE ORDER (Updated)
 ========================= */
 async function placeOrder() {
+    if(!isStoreOpen) { alert("Store is closed."); return; } if(!user) { alert("Please login first"); return; }
     if(!selectedPaymentMethod) { alert("Please select a Payment Method first."); return; }
     
     const orderName = document.getElementById('checkoutName').value.trim(); 
     const orderPhone = document.getElementById('checkoutPhone').value.trim();
+    if(!orderName || !orderPhone) { alert("Please enter your Contact Details (Name & Phone)."); return; }
+    
     let finalAddressText = ""; 
+    let finalLat = deliveryLat;
+    let finalLng = deliveryLng;
     
     // Resolve which address they used
     if (selectedSavedAddressIndex !== -1) {
-        finalAddressText = userProfile.addresses[selectedSavedAddressIndex].text;
+        // SAVED ADDRESS
+        finalAddressText = `Saved: ${userProfile.addresses[selectedSavedAddressIndex].label} - ${userProfile.addresses[selectedSavedAddressIndex].text}`;
     } else if (deliveryLat && deliveryLng) {
+        // MAP PIN ADDRESS
         const flatNum = document.getElementById('flatNumber').value.trim();
         const landmark = document.getElementById('landmark').value.trim();
         const geocodedText = document.getElementById('displayGeocodedAddress').innerText;
-        finalAddressText = `${flatNum}${landmark ? `, Landmark: ${landmark}` : ""}, ${geocodedText}`;
+        finalAddressText = `${flatNum}${landmark ? `, Landmark: ${landmark}` : ""}, ${geocodedText} (Map Pin Provided)`;
     } else {
-        finalAddressText = document.getElementById('manualAddress').value.trim();
+        // FULL MANUAL TEXT ADDRESS
+        const manualInput = document.getElementById('manualAddress').value.trim();
+        finalAddressText = `${manualInput} (Manual Text Entry)`;
     }
+
+    if(!finalAddressText) { alert("Delivery address is required."); return; }
 
     let screenshotUrl = null; 
     const fileInput = document.getElementById('paymentScreenshot');
-    if (selectedPaymentMethod === "ONLINE") { if (fileInput.files.length === 0) { alert("Please upload the payment screenshot."); return; } }
+    if (selectedPaymentMethod === "ONLINE") { if (fileInput.files.length === 0) { alert("Please upload the payment screenshot before confirming."); return; } }
     
     const btn = document.getElementById('placeOrderBtn'); btn.innerText = "Processing Securely..."; btn.disabled = true; btn.style.opacity = "0.7";
     
@@ -710,10 +736,11 @@ async function placeOrder() {
 
             const newOrderRef = db.collection("orders").doc();
             transaction.set(newOrderRef, {
-                userId: user.uid, userName: orderName, userPhone: orderPhone, orderNumber: newOrderNumber, items: Object.values(cart), total: total, address: finalAddressText, deliveryLocation: (deliveryLat && deliveryLng) ? { lat: deliveryLat, lng: deliveryLng } : null, payment: selectedPaymentMethod, paymentScreenshot: screenshotUrl, status: "pending", createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                userId: user.uid, userName: orderName, userPhone: orderPhone, orderNumber: newOrderNumber, items: Object.values(cart), total: total, address: finalAddressText, deliveryLocation: (finalLat && finalLng) ? { lat: finalLat, lng: finalLng } : null, payment: selectedPaymentMethod, paymentScreenshot: screenshotUrl, status: "pending", createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         });
         
+        notificationAudio.play().catch(e => console.log(e));
         showToast("🎉 Order placed successfully!");
         
         // Reset Everything
@@ -721,7 +748,7 @@ async function placeOrder() {
         document.getElementById('checkoutModal').style.display = "none"; 
         document.getElementById('checkoutStepPayment').style.display = "none";
         document.getElementById('checkoutStepAddress').style.display = "block";
-        document.getElementById('manualAddress').value = ""; document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('gpsText').innerText = "Set exact map location"; document.getElementById('gpsIcon').innerText = "📍"; render();
+        document.getElementById('manualAddress').value = ""; document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('manualAddressContainer').style.display = "block"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('gpsText').innerText = "Set exact map location"; document.getElementById('gpsIcon').innerText = "📍"; render();
     
     } catch (error) { 
         console.error(error); 
@@ -810,7 +837,7 @@ function initializeMapTracking(orderId, dropOffLocation) {
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry,places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry,places"></script>
 
 </body>
 </html>
