@@ -62,7 +62,9 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 .btn-primary { width: 100%; background: #16a34a; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 10px;}
 .btn-location { width: 100%; background: #eefce9; color: #16a34a; border: 1px solid #16a34a; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-/* ADDRESS & PAYMENT CARDS */
+/* CHECKOUT ADDRESS UI */
+.compact-address-card { border: 2px solid #16a34a; background: #f0fdf4; border-radius: 12px; padding: 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(22,163,74,0.15); margin-bottom: 15px; }
+.compact-address-card:active { transform: scale(0.98); }
 .address-card { border: 1px solid #ddd; border-radius: 12px; padding: 15px; margin-bottom: 10px; cursor: pointer; position: relative; transition: 0.2s; background: white;}
 .address-card.active { border: 2px solid #16a34a; background: #f0fdf4; box-shadow: 0 4px 10px rgba(22,163,74,0.1);}
 .address-label { font-weight: bold; font-size: 16px; color: #333; margin-bottom: 6px; display:flex; align-items:center; gap:8px;}
@@ -72,7 +74,7 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 .pay-card.active { border-color: #16a34a; background: #f0fdf4; color: #16a34a; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.15);}
 .pay-icon { font-size: 24px; }
 
-.divider { display: flex; align-items: center; text-align: center; margin: 15px 0; color: #aaa; font-size: 13px; font-weight: bold; }
+.divider { display: flex; align-items: center; text-align: center; margin: 15px 0; color: #aaa; font-size: 12px; font-weight: bold; }
 .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
 .divider:not(:empty)::before { margin-right: .5em; }
 .divider:not(:empty)::after { margin-left: .5em; }
@@ -196,14 +198,18 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
     <div class="box" style="display: flex; flex-direction: column;">
         
         <div id="checkoutStepAddress">
-            <h3 style="margin-top:0;">Step 1: Delivery Address</h3>
+            <h3 style="margin-top:0; margin-bottom: 15px;">Step 1: Delivery Address</h3>
             
-            <div id="checkoutSavedAddressContainer" style="margin-bottom: 15px;">
-                <div id="checkoutSavedAddressesList"></div>
+            <div id="defaultAddressSummary" style="display:none;" onclick="openCheckoutAddressSelection()"></div>
+
+            <div class="divider" id="anotherLocationDivider">OR DELIVER TO ANOTHER LOCATION</div>
+            
+            <div id="manualAddressContainer">
+                <textarea id="manualAddress" rows="3" placeholder="Enter Full Address (House No, Building, Area, Landmark)" style="resize: none;" oninput="deselectSavedAddress()"></textarea>
             </div>
 
             <button class="btn-location" onclick="openLocationPicker('checkout')">
-                <span id="gpsIcon">📍</span> <span id="gpsText">+ Add New Address</span>
+                <span id="gpsIcon">📍</span> <span id="gpsText">Set exact map location</span>
             </button>
 
             <div id="specificAddressContainer" style="display: none; margin-bottom: 15px;">
@@ -211,8 +217,8 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
                     <b style="display:block; margin-bottom: 4px; color: #16a34a;">📍 Map Location Set:</b>
                     <span id="displayGeocodedAddress" style="color: #444; line-height: 1.4;"></span>
                 </div>
-                <input id="flatNumber" placeholder="House / Flat No, Floor, Building *" style="border: 1px solid #16a34a; background: #fff;">
-                <input id="landmark" placeholder="Nearby Landmark / Area (Optional)">
+                <input id="flatNumber" placeholder="House / Flat No, Floor, Building *" style="border: 1px solid #16a34a; background: #fff;" oninput="deselectSavedAddress()">
+                <input id="landmark" placeholder="Nearby Landmark / Area (Optional)" oninput="deselectSavedAddress()">
             </div>
 
             <div class="divider">CONTACT DETAILS</div>
@@ -250,8 +256,16 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
     </div>
 </div>
 
-<div id="locationPickerModal" class="modal">
-    <div class="box" style="height: 80%; display: flex; flex-direction: column; padding: 0;">
+<div id="checkoutAddressSelectionModal" class="modal" style="z-index: 10005;">
+    <div class="box" style="margin-top: auto; border-radius: 20px 20px 0 0; max-height: 80%;">
+        <h3 style="margin-top:0; margin-bottom: 15px;">Select Delivery Address</h3>
+        <div id="checkoutSelectionList"></div>
+        <button onclick="document.getElementById('checkoutAddressSelectionModal').style.display='none'" style="width: 100%; background: #eee; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px;">Close</button>
+    </div>
+</div>
+
+<div id="locationPickerModal" class="modal" style="z-index: 10002;">
+    <div class="box" style="height: 85vh; display: flex; flex-direction: column; padding: 0; max-height: none;">
         <div style="padding: 15px; background: white; border-radius: 20px 20px 0 0; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <h3 style="margin: 0;">Adjust Your Location</h3>
         </div>
@@ -275,7 +289,7 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 </div>
 
 <div id="mapModal" class="modal">
-    <div class="box" style="padding: 0; overflow: hidden; background: #eee;">
+    <div class="box" style="padding: 0; overflow: hidden; background: #eee; height: 90vh; max-height: none;">
         <div id="map" style="height: 100%; width: 100%;"></div>
         <div id="trackingPanel" style="position: absolute; bottom: 0; left: 0; width: 100%; background: white; padding: 20px; border-radius: 20px 20px 0 0; box-shadow: 0 -3px 20px rgba(0,0,0,0.15); box-sizing: border-box; z-index: 10;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -283,8 +297,12 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
                 <span id="eta" style="background: #eefce9; color: #16a34a; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 14px;">Calc ETA...</span>
             </div>
             <div id="statusText" style="color:#666; font-size: 14px; margin-bottom: 15px;">Connecting to driver GPS...</div>
+            
             <div id="noDriverText" style="text-align:center; color:#666; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Assigning a delivery partner soon...</div>
-            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">📞 Call Partner</a>
+            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">
+                📞 Call Partner
+            </a>
+            
             <button onclick="document.getElementById('mapModal').style.display='none'" style="width:100%; padding:10px; background:#ddd; color:#333; border:none; border-radius:8px; margin-top:10px; cursor:pointer; font-weight:bold;">Close Map</button>
         </div>
     </div>
@@ -296,7 +314,7 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-// GLOBAL VARIABLES (Fixes Geocoder Reference Error)
+// GLOBAL VARIABLES
 let pickerMap = null;
 let geocoder = null;
 
@@ -529,7 +547,7 @@ function updateCart() {
 }
 
 /* =========================
-   CHECKOUT FLOW
+   CHECKOUT FLOW (NEW)
 ========================= */
 function openCart() { if(!isStoreOpen) { alert("Store is currently closed."); return; } document.getElementById('cartModal').style.display = "flex"; }
 
@@ -540,43 +558,78 @@ function checkout() {
     document.getElementById('checkoutName').value = userProfile.name || user.displayName || ""; 
     document.getElementById('checkoutPhone').value = userProfile.phone || "";
     
-    selectedPaymentMethod = ""; selectedSavedAddressIndex = -1;
+    selectedPaymentMethod = ""; 
     
-    renderCheckoutAddresses();
+    if (userProfile.addresses && userProfile.addresses.length > 0) {
+        selectedSavedAddressIndex = 0; // Default to first address
+    } else {
+        selectedSavedAddressIndex = -1;
+    }
+    
+    document.getElementById('manualAddress').value = "";
+    deliveryLat = null; deliveryLng = null;
+    document.getElementById('specificAddressContainer').style.display = "none";
+    
+    renderCheckoutStep1UI();
 
     document.getElementById('checkoutStepAddress').style.display = "block";
     document.getElementById('checkoutStepPayment').style.display = "none";
     document.getElementById('checkoutModal').style.display = "flex"; 
 }
 
-function renderCheckoutAddresses() {
-    const list = document.getElementById('checkoutSavedAddressesList');
-    if(!userProfile.addresses || userProfile.addresses.length === 0) {
-        document.getElementById('checkoutSavedAddressContainer').style.display = "none";
-        return;
+function renderCheckoutStep1UI() {
+    const summary = document.getElementById('defaultAddressSummary');
+    const divider = document.getElementById('anotherLocationDivider');
+
+    if (selectedSavedAddressIndex >= 0 && userProfile.addresses.length > 0) {
+        let a = userProfile.addresses[selectedSavedAddressIndex];
+        summary.style.display = "block";
+        summary.innerHTML = `
+            <div class="compact-address-card">
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; font-size: 16px; color: #111; margin-bottom: 4px; display:flex; align-items:center; gap:5px;">🏠 Delivery at ${a.label}</div>
+                    <div style="font-size: 13px; color: #555; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${a.flat ? a.flat + ', ' : ''}${a.landmark ? a.landmark + ', ' : ''}${a.text}</div>
+                </div>
+                <div style="font-size: 22px; color: #16a34a; font-weight:bold; padding-left: 15px;">&gt;</div>
+            </div>
+        `;
+        divider.innerText = "OR DELIVER TO ANOTHER LOCATION";
+    } else {
+        summary.style.display = "none";
+        divider.innerText = "ENTER DELIVERY ADDRESS";
     }
-    document.getElementById('checkoutSavedAddressContainer').style.display = "block";
-    
-    let html = "";
+}
+
+function openCheckoutAddressSelection() {
+    const list = document.getElementById('checkoutSelectionList');
+    list.innerHTML = "";
     userProfile.addresses.forEach((a, index) => {
         let isActive = (index === selectedSavedAddressIndex) ? "active" : "";
-        let iconHtml = (index === selectedSavedAddressIndex) ? "✅ " : "📍 ";
-        
-        html += `
+        let iconHtml = (index === selectedSavedAddressIndex) ? "✅ " : "🏠 ";
+        list.innerHTML += `
         <div class="address-card ${isActive}" onclick="selectCheckoutAddress(${index})">
             <div class="address-label">${iconHtml}${a.label}</div>
             <div class="address-text">${a.flat ? a.flat + ', ' : ''}${a.landmark ? a.landmark + ', ' : ''}${a.text}</div>
-            <div style="font-size:12px; color:#16a34a; font-weight:bold; margin-top:8px;">Deliver to this address ➔</div>
         </div>`;
     });
-    list.innerHTML = html;
+    document.getElementById('checkoutAddressSelectionModal').style.display = "flex";
 }
 
 function selectCheckoutAddress(index) {
     selectedSavedAddressIndex = index;
+    // Clear manual inputs if they select a saved address
+    document.getElementById('manualAddress').value = "";
     document.getElementById('specificAddressContainer').style.display = "none";
     deliveryLat = null; deliveryLng = null;
-    renderCheckoutAddresses();
+    
+    renderCheckoutStep1UI();
+    document.getElementById('checkoutAddressSelectionModal').style.display = "none";
+}
+
+function deselectSavedAddress() {
+    // If they type manually, clear the saved selection highlight
+    selectedSavedAddressIndex = -1;
+    renderCheckoutStep1UI();
 }
 
 function goToPaymentStep() {
@@ -584,14 +637,14 @@ function goToPaymentStep() {
     const phone = document.getElementById('checkoutPhone').value.trim();
     if(!name || !phone) { alert("Please enter your Contact Details (Name & Phone)."); return; }
 
+    let manualInput = document.getElementById('manualAddress').value.trim();
     let flatNum = document.getElementById('flatNumber').value.trim();
     
     if(selectedSavedAddressIndex === -1) {
-        if (!deliveryLat || !deliveryLng) {
-            alert("Please select a saved address or Add a New Map Location."); return;
-        }
-        if(!flatNum) {
-            alert("Please enter House / Flat Number for your map location."); return;
+        if (deliveryLat && deliveryLng) {
+            if(!flatNum) { alert("Please enter your House/Flat Number for the Map Pin!"); return; }
+        } else if (!manualInput) {
+            alert("Please select a saved address OR enter a new one manually."); return;
         }
     }
 
@@ -663,8 +716,7 @@ function confirmPickedLocation() {
     document.getElementById('locationPickerModal').style.display = "none"; 
     
     if(mapContext === 'checkout') {
-        selectedSavedAddressIndex = -1; // Deselect saved cards
-        renderCheckoutAddresses();
+        deselectSavedAddress(); // Deselect saved cards
         document.getElementById('gpsIcon').innerText = "✅"; document.getElementById('gpsText').innerText = "Map Location Saved!"; 
         document.getElementById('specificAddressContainer').style.display = "block"; 
         document.getElementById('displayGeocodedAddress').innerText = document.getElementById('pickedAddressText').innerText;
@@ -699,8 +751,11 @@ async function placeOrder() {
         finalAddressText = `${flatNum}${landmark ? `, Landmark: ${landmark}` : ""}, ${geocodedText} (Map Pin Provided)`;
         finalLat = deliveryLat; finalLng = deliveryLng;
     } else {
-        alert("Please provide a delivery address."); return;
+        const manualInput = document.getElementById('manualAddress').value.trim();
+        finalAddressText = `${manualInput} (Manual Text Entry)`;
     }
+
+    if(!finalAddressText || finalAddressText === " (Manual Text Entry)") { alert("Delivery address is required."); return; }
 
     let screenshotUrl = null; const fileInput = document.getElementById('paymentScreenshot');
     if (selectedPaymentMethod === "ONLINE") { if (fileInput.files.length === 0) { alert("Please upload the payment screenshot before confirming."); return; } }
@@ -752,7 +807,7 @@ async function placeOrder() {
         document.getElementById('checkoutModal').style.display = "none"; 
         document.getElementById('checkoutStepPayment').style.display = "none";
         document.getElementById('checkoutStepAddress').style.display = "block";
-        document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('gpsText').innerText = "+ Add New Address"; document.getElementById('gpsIcon').innerText = "📍"; render();
+        document.getElementById('manualAddress').value = ""; document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('gpsText').innerText = "Set exact map location"; document.getElementById('gpsIcon').innerText = "📍"; render();
     
     } catch (error) { 
         console.error(error); 
@@ -791,7 +846,7 @@ function renderActiveDeliveries(orders) {
     bar.style.display = 'flex'; scroller.innerHTML = "";
     orders.forEach(o => {
         let lat = o.deliveryLocation ? o.deliveryLocation.lat : null; let lng = o.deliveryLocation ? o.deliveryLocation.lng : null;
-        scroller.innerHTML += `<div class="delivery-slide" onclick="trackOrder('${o.id}', ${lat}, ${lng})"><div class="delivery-icon">🛵</div><div class="delivery-text"><b style="color:#111; font-size:14px; margin-bottom:2px;">Order #${o.displayId} arriving!</b><span style="color:#16a34a; font-size:12px; font-weight:bold;">Track live map ➔</span></div></div>`;
+        scroller.innerHTML += `<div class="delivery-slide" onclick="trackOrder('${o.id}', ${lat || null}, ${lng || null})"><div class="delivery-icon">🛵</div><div class="delivery-text"><b style="color:#111; font-size:14px; margin-bottom:2px;">Order #${o.displayId} arriving!</b><span style="color:#16a34a; font-size:12px; font-weight:bold;">Track live map ➔</span></div></div>`;
     });
     if (activeDeliveryInterval) clearInterval(activeDeliveryInterval); currentSlide = 0; scroller.style.transform = `translateX(0%)`;
 }
@@ -805,7 +860,7 @@ function openOrders() {
             let itemsText = o.items ? o.items.map(i => `${i.qty}x ${i.name}`).join(", ") : "No items"; 
             let color = o.status === "delivered" ? "#16a34a" : (o.status === "rejected" ? "#dc2626" : (o.status === "out for delivery" ? "#2563eb" : "#f59e0b"));
             let savedLat = o.deliveryLocation ? o.deliveryLocation.lat : null; let savedLng = o.deliveryLocation ? o.deliveryLocation.lng : null; let displayId = o.orderNumber ? o.orderNumber : o.id.slice(0,6).toUpperCase();
-            let trackBtn = o.status === "out for delivery" ? `<button onclick="trackOrder('${o.id}', ${savedLat}, ${savedLng})" style="margin-top:12px; width:100%; padding:12px; background:#eefce9; color:#16a34a; border:1px solid #16a34a; border-radius:8px; cursor:pointer; font-weight:bold; font-size:15px;">📍 Track Live Order</button>` : "";
+            let trackBtn = o.status === "out for delivery" ? `<button onclick="trackOrder('${o.id}', ${savedLat || null}, ${savedLng || null})" style="margin-top:12px; width:100%; padding:12px; background:#eefce9; color:#16a34a; border:1px solid #16a34a; border-radius:8px; cursor:pointer; font-weight:bold; font-size:15px;">📍 Track Live Order</button>` : "";
             document.getElementById('ordersList').innerHTML += `<div style="background:#fff; padding:15px; margin-bottom:15px; border-radius:12px; border: 1px solid #eaeaea;"><div style="display:flex; justify-content:space-between; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;"><b style="color: #444;">Order #${displayId}</b><span style="color:${color}; font-weight:bold; text-transform: capitalize;">${o.status}</span></div><div style="color:#555; font-size: 14px; line-height: 1.5;">${itemsText}</div><div style="margin-top:10px; font-weight:bold; font-size: 16px;">₹${o.total}</div>${trackBtn}</div>`;
         });
     });
@@ -822,7 +877,7 @@ function trackOrder(orderId, destinationLat, destinationLng) {
 }
 
 function initializeMapTracking(orderId, dropOffLocation) {
-    if(typeof google === 'undefined') { alert("Google Maps failed to load."); return; }
+    if(typeof google === 'undefined') { showToast("⚠️ Map tracking unavailable."); return; }
     map = new google.maps.Map(document.getElementById("map"), { center: dropOffLocation, zoom: 14, disableDefaultUI: true }); directionsService = new google.maps.DirectionsService(); directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: true, polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } }); userMarker = new google.maps.Marker({ position: dropOffLocation, map: map, icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" } }); deliveryMarker = new google.maps.Marker({ map: map, icon: { url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", scaledSize: new google.maps.Size(35, 35) } });
     if(unsubscribeTracking) unsubscribeTracking();
     
