@@ -15,7 +15,7 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 .menu-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 10px;}
 #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 900; }
 
-/* ANNOUNCEMENT BAR (Speed fixed for PC) */
+/* ANNOUNCEMENT BAR */
 .marquee-container { display: none; overflow: hidden; white-space: nowrap; padding: 8px 15px; font-size: 14px; font-weight: bold; border-bottom: 1px solid rgba(0,0,0,0.1); }
 .marquee-text { display: inline-block; animation: scrollText 25s linear infinite; }
 @keyframes scrollText { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
@@ -77,7 +77,7 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
 .divider:not(:empty)::before { margin-right: .5em; }
 .divider:not(:empty)::after { margin-left: .5em; }
 
-/* PROMO MODAL (NEW) */
+/* PROMO MODAL */
 #promoModal { display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); }
 .promo-content { position: relative; width: 90%; max-width: 350px; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -169,11 +169,9 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
 <div id="checkoutModal" class="modal">
     <div class="box">
         <h3 style="margin-top:0;">Delivery Details</h3>
-        
         <button class="btn-location" onclick="openLocationPicker()">
             <span id="gpsIcon">📍</span> <span id="gpsText">Set exact map location</span>
         </button>
-
         <div id="specificAddressContainer" style="display: none; margin-bottom: 15px;">
             <div style="background: #eefce9; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; border: 1px solid #ccebc4;">
                 <b style="display:block; margin-bottom: 4px; color: #16a34a;">📍 Map Location Set:</b>
@@ -182,34 +180,26 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
             <input id="flatNumber" placeholder="House / Flat No, Floor, Building *" style="border: 1px solid #16a34a; background: #fff;">
             <input id="landmark" placeholder="Nearby Landmark / Area (Optional)">
         </div>
-
         <div id="manualAddressContainer">
             <div class="divider">OR ENTER MANUALLY</div>
             <textarea id="manualAddress" rows="3" placeholder="Enter Full Address (House No, Building, Street, Area, Landmark)" style="resize: none;"></textarea>
         </div>
-
         <div class="divider">CONTACT DETAILS</div>
         <div style="display: flex; gap: 10px;">
             <input id="checkoutName" placeholder="Customer Name *" style="flex: 1;">
             <input id="checkoutPhone" type="tel" placeholder="Phone Number *" style="flex: 1;">
         </div>
-
         <div class="divider">PAYMENT</div>
-        <select id="payment" onchange="handlePaymentSelection()">
-        </select>
-
+        <select id="payment" onchange="handlePaymentSelection()"></select>
         <div id="upiPaymentSection" style="display: none; background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #16a34a; margin-bottom: 15px; text-align: center;">
             <p style="margin: 0 0 10px 0; font-weight: bold; color: #16a34a;">Scan & Pay ₹<span id="upiAmountText"></span></p>
             <img id="paymentQrImage" src="https://via.placeholder.com/150?text=Loading+QR..." style="width: 150px; border-radius: 8px; margin-bottom: 10px;">
-            <button id="upiAppBtn" style="background: #2563eb; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; margin-bottom: 15px; cursor: pointer;">
-                📱 Open UPI App on Phone
-            </button>
+            <button id="upiAppBtn" style="background: #2563eb; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; margin-bottom: 15px; cursor: pointer;">📱 Open UPI App on Phone</button>
             <div style="text-align: left; border-top: 1px dashed #ccc; padding-top: 15px;">
                 <label style="font-weight: bold; font-size: 14px; color: #333; display: block; margin-bottom: 8px;">Upload Payment Screenshot *</label>
                 <input type="file" id="paymentScreenshot" accept="image/*" style="border: 1px solid #16a34a; padding: 10px; background: white;">
             </div>
         </div>
-        
         <button id="placeOrderBtn" class="btn-primary" onclick="placeOrder()">Place Order</button>
     </div>
 </div>
@@ -250,7 +240,7 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
             
             <div id="noDriverText" style="text-align:center; color:#666; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Assigning a delivery partner soon...</div>
             <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">
-                📞 Call Delivery Partner
+                📞 Call Partner
             </a>
             
             <button onclick="document.getElementById('mapModal').style.display='none'" style="width:100%; padding:10px; background:#ddd; color:#333; border:none; border-radius:8px; margin-top:10px; cursor:pointer; font-weight:bold;">Close Map</button>
@@ -289,7 +279,6 @@ let allowCOD = true;
 let allowOnline = true;
 let userHiddenTracker = false;
 
-// Promo Logic Logic
 let promoVisits = parseInt(localStorage.getItem("promoVisits") || "0");
 promoVisits++;
 localStorage.setItem("promoVisits", promoVisits);
@@ -297,8 +286,6 @@ let shouldShowPromo = (promoVisits === 1 || promoVisits % 4 === 0);
 let promoShownThisSession = false;
 
 function closePromo() { document.getElementById('promoModal').style.display = 'none'; }
-
-// Custom Audio Player
 let notificationAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
 function openMenu() { document.getElementById('menu').classList.add("open"); document.getElementById('overlay').style.display = "block"; }
@@ -307,7 +294,7 @@ document.getElementById('loginBtn').onclick = () => auth.signInWithPopup(new fir
 function logout() { auth.signOut(); closeMenu(); }
 
 /* =========================
-   AUTH & BACKGROUND TRACKING
+   AUTH & TRACKING
 ========================= */
 auth.onAuthStateChanged(u => {
     user = u;
@@ -334,9 +321,6 @@ auth.onAuthStateChanged(u => {
     }
 });
 
-/* =========================
-   NOTIFICATIONS & SCROLLER LOGIC
-========================= */
 let knownOrderStatuses = {};
 let initialOrdersLoaded = false;
 let activeDeliveryInterval = null;
@@ -348,7 +332,7 @@ function showToast(message) {
     toast.className = "toast";
     toast.innerText = message;
     container.appendChild(toast);
-    notificationAudio.play().catch(e => console.log("Audio blocked by browser", e));
+    notificationAudio.play().catch(e => console.log(e));
     setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 5000);
 }
 
@@ -387,57 +371,31 @@ function renderActiveDeliveries(orders) {
     const scroller = document.getElementById('activeDeliveriesScroller');
     const pagContainer = document.getElementById('paginationContainer');
     
-    if (orders.length === 0 || userHiddenTracker) {
-        bar.style.display = 'none';
-        if (activeDeliveryInterval) clearInterval(activeDeliveryInterval);
-        return;
-    }
+    if (orders.length === 0 || userHiddenTracker) { bar.style.display = 'none'; if (activeDeliveryInterval) clearInterval(activeDeliveryInterval); return; }
 
-    bar.style.display = 'flex';
-    scroller.innerHTML = "";
-    
+    bar.style.display = 'flex'; scroller.innerHTML = "";
     orders.forEach(o => {
-        let lat = o.deliveryLocation ? o.deliveryLocation.lat : null;
-        let lng = o.deliveryLocation ? o.deliveryLocation.lng : null;
-        scroller.innerHTML += `
-        <div class="delivery-slide" onclick="trackOrder('${o.id}', ${lat}, ${lng})">
-            <div class="delivery-icon">🛵</div>
-            <div class="delivery-text">
-                <b style="color:#111; font-size:14px; margin-bottom:2px;">Order #${o.displayId} arriving!</b>
-                <span style="color:#16a34a; font-size:12px; font-weight:bold;">Track live map ➔</span>
-            </div>
-        </div>`;
+        let lat = o.deliveryLocation ? o.deliveryLocation.lat : null; let lng = o.deliveryLocation ? o.deliveryLocation.lng : null;
+        scroller.innerHTML += `<div class="delivery-slide" onclick="trackOrder('${o.id}', ${lat}, ${lng})"><div class="delivery-icon">🛵</div><div class="delivery-text"><b style="color:#111; font-size:14px; margin-bottom:2px;">Order #${o.displayId} arriving!</b><span style="color:#16a34a; font-size:12px; font-weight:bold;">Track live map ➔</span></div></div>`;
     });
 
     if (activeDeliveryInterval) clearInterval(activeDeliveryInterval);
-    currentSlide = 0;
-    scroller.style.transform = `translateX(0%)`;
+    currentSlide = 0; scroller.style.transform = `translateX(0%)`;
 
     if (orders.length > 1) {
-        pagContainer.style.display = "flex";
-        updatePagination(orders.length);
-        
-        activeDeliveryInterval = setInterval(() => {
-            currentSlide = (currentSlide + 1) % orders.length;
-            scroller.style.transform = `translateX(-${currentSlide * 100}%)`;
-            updatePagination(orders.length);
-        }, 3500);
-    } else {
-        pagContainer.style.display = "none";
-    }
+        pagContainer.style.display = "flex"; updatePagination(orders.length);
+        activeDeliveryInterval = setInterval(() => { currentSlide = (currentSlide + 1) % orders.length; scroller.style.transform = `translateX(-${currentSlide * 100}%)`; updatePagination(orders.length); }, 3500);
+    } else { pagContainer.style.display = "none"; }
 }
 
 function updatePagination(total) {
     document.getElementById('pageText').innerText = `${currentSlide + 1}/${total}`;
-    const pageDots = document.getElementById('pageDots');
-    pageDots.innerHTML = "";
-    for(let i=0; i<total; i++) {
-        pageDots.innerHTML += `<div class="dot ${i === currentSlide ? 'active' : ''}"></div>`;
-    }
+    const pageDots = document.getElementById('pageDots'); pageDots.innerHTML = "";
+    for(let i=0; i<total; i++) { pageDots.innerHTML += `<div class="dot ${i === currentSlide ? 'active' : ''}"></div>`; }
 }
 
 /* =========================
-   STORE MASTER SETTINGS & PROMO
+   STORE SETTINGS
 ========================= */
 db.collection("settings").doc("store").onSnapshot(doc => {
     if(doc.exists) {
@@ -446,19 +404,16 @@ db.collection("settings").doc("store").onSnapshot(doc => {
         allowCOD = data.allowCOD !== false;
         allowOnline = data.allowOnline !== false;
 
-        // Sound Update
         if(data.notificationSoundUrl) { notificationAudio.src = data.notificationSoundUrl; }
 
-        // Promo Update
         if (data.promoImageUrl && data.isPromoActive && shouldShowPromo && !promoShownThisSession) {
             document.getElementById('promoImage').src = data.promoImageUrl;
             document.getElementById('promoModal').style.display = 'flex';
-            promoShownThisSession = true; // Prevent reopening on live DB updates in this session
+            promoShownThisSession = true; 
         } else if (!data.isPromoActive) {
             document.getElementById('promoModal').style.display = 'none';
         }
 
-        // Announcement Update
         const announcementBar = document.getElementById('announcementBar');
         if(data.announcementText && data.announcementText.trim() !== "") {
             announcementBar.style.display = "block";
@@ -470,20 +425,16 @@ db.collection("settings").doc("store").onSnapshot(doc => {
             announcementBar.style.display = "none";
         }
     }
-
     const closedBanner = document.getElementById('storeClosedBanner');
     if(!isStoreOpen) closedBanner.style.display = "block"; else closedBanner.style.display = "none";
-
-    updatePaymentOptions();
-    render(); 
+    updatePaymentOptions(); render(); 
 });
 
 function openProfile() { if(!user) { alert("Please login first"); return; } closeMenu(); document.getElementById('profileModal').style.display = "flex"; }
 function saveProfile() { if(!user) return; const name = document.getElementById('profileName').value.trim(); const phone = document.getElementById('profilePhone').value.trim(); db.collection("users").doc(user.uid).set({ name, phone }, { merge: true }).then(() => { alert("Profile saved!"); document.getElementById('profileModal').style.display = "none"; }); }
 
 function updatePaymentOptions() {
-    const paySelect = document.getElementById('payment');
-    let currentVal = paySelect.value;
+    const paySelect = document.getElementById('payment'); let currentVal = paySelect.value;
     paySelect.innerHTML = '<option value="">Select Payment Method</option>';
     if(allowCOD) { paySelect.innerHTML += '<option value="COD">Cash on Delivery</option>'; }
     if(allowOnline) { paySelect.innerHTML += '<option value="ONLINE">Pay Online (UPI)</option>'; }
@@ -496,19 +447,33 @@ db.collection("settings").doc("payment").onSnapshot(doc => {
 });
 
 /* =========================
-   MENU & CART LOGIC
+   MENU & CART & STOCK LOGIC
 ========================= */
 db.collection("items").onSnapshot(snap => {
     document.getElementById('itemsList').innerHTML = ""; itemsCache = {};
     snap.forEach(doc => {
         let i = doc.data(); itemsCache[doc.id] = i;
         let descHTML = i.description ? `<div class="menu-desc">${i.description}</div>` : '';
+        
+        // DYNAMIC STOCK UI
+        let stockWarning = "";
+        let isOutOfStock = false;
+        
+        if (i.stock !== undefined && i.stock !== null) {
+            if (i.stock <= 0) {
+                isOutOfStock = true;
+            } else if (i.stock <= 5) {
+                stockWarning = `<div style="color: #dc2626; font-size: 13px; font-weight: bold; margin-bottom: 6px;">Hurry! Only ${i.stock} left</div>`;
+            }
+        }
+
         document.getElementById('itemsList').innerHTML += `
         <div class="menu-card">
             <div class="menu-info">
                 <div class="menu-title">${i.name}</div>
                 <div class="menu-price">₹${i.price}</div>
                 ${descHTML}
+                ${stockWarning}
             </div>
             <div class="menu-img-wrapper">
                 <img src="${i.image}" onerror="this.src='https://via.placeholder.com/150'">
@@ -519,8 +484,44 @@ db.collection("items").onSnapshot(snap => {
     setTimeout(render, 100);
 });
 
-function add(id) { if(!isStoreOpen) return; if(!cart[id]) cart[id] = {...itemsCache[id], qty: 0}; cart[id].qty++; render(); }
-function inc(id) { if(!isStoreOpen) return; cart[id].qty++; render(); }
+function add(id) { 
+    if(!isStoreOpen) return; 
+    let i = itemsCache[id];
+    
+    // Check Stock
+    if (i.stock !== undefined && i.stock !== null && i.stock <= 0) {
+        alert("Sorry, this item is out of stock!");
+        return;
+    }
+    // Check Limit
+    if (i.limit !== undefined && i.limit !== null && i.limit <= 0) {
+        alert(`You can only order up to ${i.limit} of this item.`);
+        return;
+    }
+
+    if(!cart[id]) cart[id] = {...i, qty: 0}; 
+    cart[id].qty++; render(); 
+}
+
+function inc(id) { 
+    if(!isStoreOpen) return; 
+    let i = itemsCache[id];
+    let currentQty = cart[id].qty;
+
+    // Check Stock
+    if (i.stock !== undefined && i.stock !== null && currentQty >= i.stock) {
+        alert(`Sorry, only ${i.stock} available in stock!`);
+        return;
+    }
+    // Check Limit
+    if (i.limit !== undefined && i.limit !== null && currentQty >= i.limit) {
+        alert(`You can only order up to ${i.limit} of this item per order.`);
+        return;
+    }
+
+    cart[id].qty++; render(); 
+}
+
 function dec(id) { cart[id].qty--; if(cart[id].qty <= 0) delete cart[id]; render(); }
 
 function render() {
@@ -528,8 +529,19 @@ function render() {
     Object.keys(itemsCache).forEach(id => {
         let el = document.getElementById("ctrl-" + id);
         if(!el) return;
+        
+        let i = itemsCache[id];
+        let isOutOfStock = (i.stock !== undefined && i.stock !== null && i.stock <= 0);
+
         if(!isStoreOpen) { el.innerHTML = `<button class="btn-add-initial" style="color:#aaa; cursor:not-allowed;" disabled>CLOSED</button>`; return; }
+        
         let c = cart[id];
+        
+        if(isOutOfStock && !c) {
+            el.innerHTML = `<button class="btn-add-initial" style="color:#dc2626; cursor:not-allowed;" disabled>SOLD OUT</button>`;
+            return;
+        }
+
         if(c) { el.innerHTML = `<div class="qty-controls"><button onclick="dec('${id}')">-</button><span>${c.qty}</span><button onclick="inc('${id}')">+</button></div>`; } 
         else { el.innerHTML = `<button class="btn-add-initial" onclick="add('${id}')">ADD</button>`; }
     });
@@ -584,29 +596,98 @@ function handlePaymentSelection() {
     } else { upiSection.style.display = "none"; }
 }
 
+/* =========================
+   SECURE STOCK TRANSACTION
+========================= */
 async function placeOrder() {
     if(!isStoreOpen) { alert("Store is closed."); return; } if(!user) { alert("Please login first"); return; }
     const orderName = document.getElementById('checkoutName').value.trim(); const orderPhone = document.getElementById('checkoutPhone').value.trim();
     if(!orderName || !orderPhone) { alert("Please enter your Name and Phone Number."); return; }
+    
     let finalAddressText = ""; const manualInput = document.getElementById('manualAddress').value; const flatNum = document.getElementById('flatNumber').value; const landmark = document.getElementById('landmark').value; const geocodedText = document.getElementById('displayGeocodedAddress').innerText; const payment = document.getElementById('payment').value;
     if (deliveryLat && deliveryLng) { if (!flatNum.trim()) { alert("Please enter your House/Flat Number!"); return; } finalAddressText = `${flatNum}${landmark.trim() ? `, Landmark: ${landmark}` : ""}, ${geocodedText} (Map Pin Provided)`; } else { if (!manualInput.trim()) { alert("Please enter your full delivery address"); return; } finalAddressText = manualInput; }
     if(!payment) { alert("Select payment method"); return; }
     let screenshotUrl = null; const fileInput = document.getElementById('paymentScreenshot');
     if (payment === "ONLINE") { if (fileInput.files.length === 0) { alert("Please upload the payment screenshot before placing your order."); return; } }
-    const btn = document.getElementById('placeOrderBtn'); btn.innerText = "Uploading & Placing Order..."; btn.disabled = true; btn.style.opacity = "0.7";
+    
+    const btn = document.getElementById('placeOrderBtn'); btn.innerText = "Processing Securely..."; btn.disabled = true; btn.style.opacity = "0.7";
+    
     try {
         db.collection("users").doc(user.uid).set({ name: orderName, phone: orderPhone }, { merge: true });
         if (payment === "ONLINE" && fileInput.files.length > 0) { const file = fileInput.files[0]; const storageRef = storage.ref(); const screenshotRef = storageRef.child(`payment_screenshots/${user.uid}_${Date.now()}_${file.name}`); await screenshotRef.put(file); screenshotUrl = await screenshotRef.getDownloadURL(); }
-        let items = []; let total = 0; for(let id in cart) { items.push(cart[id]); total += cart[id].price * cart[id].qty; }
-        const counterRef = db.collection("settings").doc("orderCounter");
-        let newOrderNumber = await db.runTransaction(async (transaction) => { const counterDoc = await transaction.get(counterRef); let nextNum = 1000; if (counterDoc.exists && counterDoc.data().lastNumber) { nextNum = counterDoc.data().lastNumber + 1; } transaction.set(counterRef, { lastNumber: nextNum }, { merge: true }); return nextNum; });
-        await db.collection("orders").add({ userId: user.uid, userName: orderName, userPhone: orderPhone, orderNumber: newOrderNumber, items, total, address: finalAddressText, deliveryLocation: (deliveryLat && deliveryLng) ? { lat: deliveryLat, lng: deliveryLng } : null, payment: payment, paymentScreenshot: screenshotUrl, status: "pending", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         
-        notificationAudio.play().catch(e => console.log("Audio blocked by browser", e));
+        let total = 0; for(let id in cart) { total += cart[id].price * cart[id].qty; }
+
+        // THE VAULT: Firebase Transaction for safe stock deduction
+        const counterRef = db.collection("settings").doc("orderCounter");
+        const cartItemRefs = Object.keys(cart).map(id => db.collection("items").doc(id));
+
+        let newOrderNumber;
+
+        await db.runTransaction(async (transaction) => {
+            // READS
+            const counterDoc = await transaction.get(counterRef);
+            newOrderNumber = 1000;
+            if (counterDoc.exists && counterDoc.data().lastNumber) { newOrderNumber = counterDoc.data().lastNumber + 1; }
+
+            let itemDocs = [];
+            for (let ref of cartItemRefs) { itemDocs.push({ ref: ref, doc: await transaction.get(ref) }); }
+
+            // VALIDATE STOCK SECURITY
+            for (let item of itemDocs) {
+                let id = item.ref.id;
+                let cartItem = cart[id];
+                let currentStock = item.doc.data().stock;
+                
+                if (currentStock !== undefined && currentStock !== null) {
+                    if (currentStock < cartItem.qty) {
+                        throw new Error(`Stock alert! Someone just bought ${cartItem.name}. Only ${currentStock} left in stock.`);
+                    }
+                }
+            }
+
+            // WRITES
+            transaction.set(counterRef, { lastNumber: newOrderNumber }, { merge: true });
+
+            for (let item of itemDocs) {
+                let id = item.ref.id;
+                let cartItem = cart[id];
+                let currentStock = item.doc.data().stock;
+                if (currentStock !== undefined && currentStock !== null) {
+                    transaction.update(item.ref, { stock: currentStock - cartItem.qty });
+                }
+            }
+
+            const newOrderRef = db.collection("orders").doc();
+            transaction.set(newOrderRef, {
+                userId: user.uid,
+                userName: orderName,
+                userPhone: orderPhone,
+                orderNumber: newOrderNumber,
+                items: Object.values(cart),
+                total: total,
+                address: finalAddressText,
+                deliveryLocation: (deliveryLat && deliveryLng) ? { lat: deliveryLat, lng: deliveryLng } : null,
+                payment: payment,
+                paymentScreenshot: screenshotUrl,
+                status: "pending",
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        
+        notificationAudio.play().catch(e => console.log(e));
         showToast("🎉 Order placed successfully!");
         
         cart = {}; deliveryLat = null; deliveryLng = null; document.getElementById('checkoutModal').style.display = "none"; document.getElementById('manualAddress').value = ""; document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('manualAddressContainer').style.display = "block"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('payment').value = ""; document.getElementById('gpsText').innerText = "Set exact map location"; document.getElementById('gpsIcon').innerText = "📍"; render();
-    } catch (error) { console.error("Error placing order: ", error); alert("Something went wrong. Please check your connection and try again."); } finally { btn.innerText = "Place Order"; btn.disabled = false; btn.style.opacity = "1"; }
+    
+    } catch (error) { 
+        console.error("Transaction Error: ", error); 
+        if(error.message && error.message.includes("Stock alert!")) {
+            alert(error.message); // Show the exact item that ran out of stock
+        } else {
+            alert("Something went wrong. Please check your connection and try again."); 
+        }
+    } finally { btn.innerText = "Place Order"; btn.disabled = false; btn.style.opacity = "1"; }
 }
 
 function openOrders() {
@@ -648,7 +729,6 @@ function initializeMapTracking(orderId, dropOffLocation) {
         
         if (data.driverPhone) {
             driverCallBtn.href = `tel:${data.driverPhone}`;
-            // NEW: Shows the specific Partner Name on the button
             driverCallBtn.innerHTML = `📞 Call Partner (${data.driverName || 'Driver'})`;
             driverCallBtn.style.display = "block";
             noDriverText.style.display = "none";
@@ -671,7 +751,7 @@ function initializeMapTracking(orderId, dropOffLocation) {
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry,places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry,places"></script>
 
 </body>
 </html>
