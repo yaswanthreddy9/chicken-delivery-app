@@ -15,7 +15,7 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 .menu-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 10px;}
 #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 900; }
 
-/* ANNOUNCEMENT BAR (NEW) */
+/* ANNOUNCEMENT BAR */
 .marquee-container { display: none; overflow: hidden; white-space: nowrap; background: #fef08a; color: #854d0e; padding: 8px 15px; font-size: 14px; font-weight: bold; border-bottom: 1px solid #fde047; }
 .marquee-text { display: inline-block; animation: scrollText 12s linear infinite; }
 @keyframes scrollText { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
@@ -23,14 +23,23 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 /* STORE CLOSED BANNER */
 #storeClosedBanner { display: none; background: #dc2626; color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
-/* TOAST NOTIFICATIONS (NEW) */
+/* TOAST NOTIFICATIONS */
 #toastContainer { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none; }
 .toast { background: #111; color: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: bold; font-size: 14px; text-align: center; animation: toastFade 5s forwards; }
 @keyframes toastFade { 0% { opacity: 0; transform: translateY(-20px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
 
-/* ACTIVE DELIVERIES SCROLLER (NEW) */
-#activeDeliveriesBar { display: none; position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: #2563eb; color: white; padding: 14px 0; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 15px rgba(37,99,235,0.4); z-index: 40; overflow: hidden; }
+/* BLINKIT-STYLE ACTIVE DELIVERIES BANNER */
+#activeDeliveriesBar { display: none; position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 400px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); z-index: 40; border: 1px solid #eee; align-items: center; padding: 10px 15px; box-sizing: border-box; }
+#scrollerContainer { flex: 1; overflow: hidden; position: relative; }
 #activeDeliveriesScroller { display: flex; transition: transform 0.5s ease-in-out; }
+.delivery-slide { min-width: 100%; flex-shrink: 0; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.delivery-icon { background: #f0fdf4; padding: 10px; border-radius: 10px; font-size: 22px; animation: bounceIcon 2s infinite; }
+@keyframes bounceIcon { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-4px); } 60% { transform: translateY(-2px); } }
+.delivery-text { display: flex; flex-direction: column; }
+.pagination-container { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #666; padding-left: 12px; border-left: 1px solid #ddd; margin-left: 5px; min-width: 30px; }
+.dots { display: flex; gap: 4px; margin-top: 4px; }
+.dot { width: 4px; height: 4px; border-radius: 50%; background: #ccc; }
+.dot.active { background: #111; }
 
 .container { padding: 15px; padding-bottom: 140px; }
 
@@ -103,7 +112,13 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
 </div>
 
 <div id="activeDeliveriesBar">
-    <div id="activeDeliveriesScroller"></div>
+    <div id="scrollerContainer">
+        <div id="activeDeliveriesScroller"></div>
+    </div>
+    <div id="paginationContainer" class="pagination-container" style="display:none;">
+        <span id="pageText">1/2</span>
+        <div id="pageDots" class="dots"></div>
+    </div>
 </div>
 
 <div id="cartBtn" class="cart-bar" style="display:none" onclick="openCart()">
@@ -279,7 +294,6 @@ auth.onAuthStateChanged(u => {
             document.getElementById('profilePhone').value = userProfile.phone || "";
         });
 
-        // Start listening to their live orders for toasts and tracking banner
         startBackgroundOrderTracking();
 
     } else {
@@ -293,7 +307,7 @@ auth.onAuthStateChanged(u => {
 });
 
 /* =========================
-   NEW: NOTIFICATIONS & SCROLLER LOGIC
+   NOTIFICATIONS & SCROLLER LOGIC
 ========================= */
 let knownOrderStatuses = {};
 let initialOrdersLoaded = false;
@@ -306,10 +320,7 @@ function showToast(message) {
     toast.className = "toast";
     toast.innerText = message;
     container.appendChild(toast);
-    
-    // Attempt to play sound (Browsers require user interaction first)
     notificationAudio.play().catch(e => console.log("Audio blocked by browser", e));
-    
     setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 5000);
 }
 
@@ -321,7 +332,6 @@ function startBackgroundOrderTracking() {
             let o = doc.data();
             let displayId = o.orderNumber ? o.orderNumber : doc.id.slice(0,6).toUpperCase();
             
-            // Trigger Toast if status changes!
             if (initialOrdersLoaded && knownOrderStatuses[doc.id] && knownOrderStatuses[doc.id] !== o.status) {
                 if(o.status === "preparing") showToast(`🔥 Order #${displayId} is now Preparing!`);
                 if(o.status === "out for delivery") showToast(`🚴 Order #${displayId} is Out for Delivery!`);
@@ -341,6 +351,7 @@ function startBackgroundOrderTracking() {
 function renderActiveDeliveries(orders) {
     const bar = document.getElementById('activeDeliveriesBar');
     const scroller = document.getElementById('activeDeliveriesScroller');
+    const pagContainer = document.getElementById('paginationContainer');
     
     if (orders.length === 0) {
         bar.style.display = 'none';
@@ -348,15 +359,19 @@ function renderActiveDeliveries(orders) {
         return;
     }
 
-    bar.style.display = 'block';
+    bar.style.display = 'flex';
     scroller.innerHTML = "";
     
     orders.forEach(o => {
         let lat = o.deliveryLocation ? o.deliveryLocation.lat : null;
         let lng = o.deliveryLocation ? o.deliveryLocation.lng : null;
         scroller.innerHTML += `
-        <div style="min-width:100%; flex-shrink:0; text-align:center; cursor:pointer;" onclick="trackOrder('${o.id}', ${lat}, ${lng})">
-            🚀 Order #${o.displayId} arriving soon! <span style="text-decoration:underline;">Click to track</span>
+        <div class="delivery-slide" onclick="trackOrder('${o.id}', ${lat}, ${lng})">
+            <div class="delivery-icon">🛵</div>
+            <div class="delivery-text">
+                <b style="color:#111; font-size:14px; margin-bottom:2px;">Order #${o.displayId} arriving!</b>
+                <span style="color:#16a34a; font-size:12px; font-weight:bold;">Track live map ➔</span>
+            </div>
         </div>`;
     });
 
@@ -365,10 +380,25 @@ function renderActiveDeliveries(orders) {
     scroller.style.transform = `translateX(0%)`;
 
     if (orders.length > 1) {
+        pagContainer.style.display = "flex";
+        updatePagination(orders.length);
+        
         activeDeliveryInterval = setInterval(() => {
             currentSlide = (currentSlide + 1) % orders.length;
             scroller.style.transform = `translateX(-${currentSlide * 100}%)`;
+            updatePagination(orders.length);
         }, 3500);
+    } else {
+        pagContainer.style.display = "none";
+    }
+}
+
+function updatePagination(total) {
+    document.getElementById('pageText').innerText = `${currentSlide + 1}/${total}`;
+    const pageDots = document.getElementById('pageDots');
+    pageDots.innerHTML = "";
+    for(let i=0; i<total; i++) {
+        pageDots.innerHTML += `<div class="dot ${i === currentSlide ? 'active' : ''}"></div>`;
     }
 }
 
@@ -382,12 +412,8 @@ db.collection("settings").doc("store").onSnapshot(doc => {
         allowCOD = data.allowCOD !== false;
         allowOnline = data.allowOnline !== false;
 
-        // Apply Custom Audio if Admin set it
-        if(data.notificationSoundUrl) {
-            notificationAudio.src = data.notificationSoundUrl;
-        }
+        if(data.notificationSoundUrl) { notificationAudio.src = data.notificationSoundUrl; }
 
-        // Apply Scrolling Announcement
         const announcementBar = document.getElementById('announcementBar');
         if(data.announcementText && data.announcementText.trim() !== "") {
             announcementBar.style.display = "block";
@@ -549,7 +575,7 @@ window.onclick = e => { if(e.target.classList.contains("modal")) { e.target.styl
 let map, deliveryMarker, userMarker; let directionsService, directionsRenderer; let unsubscribeTracking; let routeDrawn = false; 
 
 function trackOrder(orderId, destinationLat, destinationLng) {
-    document.getElementById('activeDeliveriesBar').style.display = 'none'; // Hide scroller while map is open
+    document.getElementById('activeDeliveriesBar').style.display = 'none'; 
     document.getElementById('mapModal').style.display = "flex"; document.getElementById('statusText').innerText = "Connecting to driver..."; routeDrawn = false;
     let dropOffLocation; if (destinationLat && destinationLng) { dropOffLocation = { lat: destinationLat, lng: destinationLng }; } else { dropOffLocation = { lat: 17.385, lng: 78.4867 }; }
     initializeMapTracking(orderId, dropOffLocation);
