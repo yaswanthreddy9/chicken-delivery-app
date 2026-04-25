@@ -643,12 +643,13 @@ function initializeMapTracking(orderId, dropOffLocation) {
         let data = doc.data(); 
         if(!data) return;
         
-        // NEW: Check if a driver phone exists and dynamically show the button
         let driverCallBtn = document.getElementById('driverCallBtn');
         let noDriverText = document.getElementById('noDriverText');
         
         if (data.driverPhone) {
             driverCallBtn.href = `tel:${data.driverPhone}`;
+            // NEW: Shows the specific Partner Name on the button
+            driverCallBtn.innerHTML = `📞 Call Partner (${data.driverName || 'Driver'})`;
             driverCallBtn.style.display = "block";
             noDriverText.style.display = "none";
         } else {
