@@ -15,10 +15,24 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 .menu-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; gap: 10px;}
 #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 900; }
 
-/* STORE CLOSED BANNER */
-#storeClosedBanner { display: none; background: #dc2626; color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 15px; position: sticky; top: 56px; z-index: 99; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+/* ANNOUNCEMENT BAR (NEW) */
+.marquee-container { display: none; overflow: hidden; white-space: nowrap; background: #fef08a; color: #854d0e; padding: 8px 15px; font-size: 14px; font-weight: bold; border-bottom: 1px solid #fde047; }
+.marquee-text { display: inline-block; animation: scrollText 12s linear infinite; }
+@keyframes scrollText { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
 
-.container { padding: 15px; padding-bottom: 80px; }
+/* STORE CLOSED BANNER */
+#storeClosedBanner { display: none; background: #dc2626; color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+/* TOAST NOTIFICATIONS (NEW) */
+#toastContainer { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none; }
+.toast { background: #111; color: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: bold; font-size: 14px; text-align: center; animation: toastFade 5s forwards; }
+@keyframes toastFade { 0% { opacity: 0; transform: translateY(-20px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
+
+/* ACTIVE DELIVERIES SCROLLER (NEW) */
+#activeDeliveriesBar { display: none; position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: #2563eb; color: white; padding: 14px 0; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 15px rgba(37,99,235,0.4); z-index: 40; overflow: hidden; }
+#activeDeliveriesScroller { display: flex; transition: transform 0.5s ease-in-out; }
+
+.container { padding: 15px; padding-bottom: 140px; }
 
 /* MENU ITEMS */
 .menu-card { display: flex; justify-content: space-between; background: white; padding: 15px; margin-bottom: 15px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
@@ -56,11 +70,17 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
 
 <body>
 
+<div id="toastContainer"></div>
+
 <header>
     <span style="font-size: 24px; cursor: pointer;" onclick="openMenu()">☰</span>
     <b style="font-size: 18px;">Quick Delivery</b>
     <button id="loginBtn" style="background: white; color: #16a34a; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">Login</button>
 </header>
+
+<div id="announcementBar" class="marquee-container">
+    <span id="announcementText" class="marquee-text"></span>
+</div>
 
 <div id="storeClosedBanner">
     🚫 Store is currently closed. We are not accepting orders right now.
@@ -80,6 +100,10 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
 
 <div class="container">
     <div id="itemsList"></div>
+</div>
+
+<div id="activeDeliveriesBar">
+    <div id="activeDeliveriesScroller"></div>
 </div>
 
 <div id="cartBtn" class="cart-bar" style="display:none" onclick="openCart()">
@@ -140,7 +164,7 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
 
         <div class="divider">PAYMENT</div>
         <select id="payment" onchange="handlePaymentSelection()">
-            </select>
+        </select>
 
         <div id="upiPaymentSection" style="display: none; background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #16a34a; margin-bottom: 15px; text-align: center;">
             <p style="margin: 0 0 10px 0; font-weight: bold; color: #16a34a;">Scan & Pay ₹<span id="upiAmountText"></span></p>
@@ -194,6 +218,7 @@ input, select, textarea { box-sizing: border-box; width:100%; padding:14px; marg
             <a href="tel:1234567891" style="display:block; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">
                 📞 Call Delivery Partner
             </a>
+            <button onclick="document.getElementById('mapModal').style.display='none'" style="width:100%; padding:10px; background:#ddd; color:#333; border:none; border-radius:8px; margin-top:10px; cursor:pointer; font-weight:bold;">Close Map</button>
         </div>
     </div>
 </div>
@@ -215,7 +240,6 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const storage = firebase.storage();
 
-// Variables
 let vendorUpiId = "";
 let vendorQrUrl = "";
 let cart = {};
@@ -225,10 +249,12 @@ let userProfile = { name: "", phone: "" };
 let deliveryLat = null;
 let deliveryLng = null;
 
-// Dynamic Store Settings
 let isStoreOpen = true;
 let allowCOD = true;
 let allowOnline = true;
+
+// Custom Audio Player
+let notificationAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
 function openMenu() { document.getElementById('menu').classList.add("open"); document.getElementById('overlay').style.display = "block"; }
 function closeMenu() { document.getElementById('menu').classList.remove("open"); document.getElementById('overlay').style.display = "none"; }
@@ -236,7 +262,7 @@ document.getElementById('loginBtn').onclick = () => auth.signInWithPopup(new fir
 function logout() { auth.signOut(); closeMenu(); }
 
 /* =========================
-   AUTH & USER PROFILE
+   AUTH & BACKGROUND TRACKING
 ========================= */
 auth.onAuthStateChanged(u => {
     user = u;
@@ -252,95 +278,156 @@ auth.onAuthStateChanged(u => {
             document.getElementById('profileName').value = userProfile.name || "";
             document.getElementById('profilePhone').value = userProfile.phone || "";
         });
+
+        // Start listening to their live orders for toasts and tracking banner
+        startBackgroundOrderTracking();
+
     } else {
         loginBtn.innerText = "Login"; loginBtn.onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
         document.getElementById('userName').innerText = "Guest";
         document.getElementById('userEmail').innerText = "Not logged in";
         userProfile = { name: "", phone: "" };
+        document.getElementById('activeDeliveriesBar').style.display = 'none';
+        if(activeDeliveryInterval) clearInterval(activeDeliveryInterval);
     }
 });
 
-function openProfile() {
-    if(!user) { alert("Please login first"); return; }
-    closeMenu();
-    document.getElementById('profileModal').style.display = "flex";
+/* =========================
+   NEW: NOTIFICATIONS & SCROLLER LOGIC
+========================= */
+let knownOrderStatuses = {};
+let initialOrdersLoaded = false;
+let activeDeliveryInterval = null;
+let currentSlide = 0;
+
+function showToast(message) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = "toast";
+    toast.innerText = message;
+    container.appendChild(toast);
+    
+    // Attempt to play sound (Browsers require user interaction first)
+    notificationAudio.play().catch(e => console.log("Audio blocked by browser", e));
+    
+    setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 5000);
 }
 
-function saveProfile() {
-    if(!user) return;
-    const name = document.getElementById('profileName').value.trim();
-    const phone = document.getElementById('profilePhone').value.trim();
-    db.collection("users").doc(user.uid).set({ name, phone }, { merge: true }).then(() => {
-        alert("Profile saved!");
-        document.getElementById('profileModal').style.display = "none";
+function startBackgroundOrderTracking() {
+    db.collection("orders").where("userId", "==", user.uid).onSnapshot(snap => {
+        let outForDeliveryOrders = [];
+
+        snap.forEach(doc => {
+            let o = doc.data();
+            let displayId = o.orderNumber ? o.orderNumber : doc.id.slice(0,6).toUpperCase();
+            
+            // Trigger Toast if status changes!
+            if (initialOrdersLoaded && knownOrderStatuses[doc.id] && knownOrderStatuses[doc.id] !== o.status) {
+                if(o.status === "preparing") showToast(`🔥 Order #${displayId} is now Preparing!`);
+                if(o.status === "out for delivery") showToast(`🚴 Order #${displayId} is Out for Delivery!`);
+                if(o.status === "delivered") showToast(`✅ Order #${displayId} has been Delivered!`);
+            }
+            knownOrderStatuses[doc.id] = o.status;
+
+            if (o.status === "out for delivery") {
+                outForDeliveryOrders.push({id: doc.id, displayId: displayId, ...o});
+            }
+        });
+        initialOrdersLoaded = true;
+        renderActiveDeliveries(outForDeliveryOrders);
     });
 }
 
+function renderActiveDeliveries(orders) {
+    const bar = document.getElementById('activeDeliveriesBar');
+    const scroller = document.getElementById('activeDeliveriesScroller');
+    
+    if (orders.length === 0) {
+        bar.style.display = 'none';
+        if (activeDeliveryInterval) clearInterval(activeDeliveryInterval);
+        return;
+    }
+
+    bar.style.display = 'block';
+    scroller.innerHTML = "";
+    
+    orders.forEach(o => {
+        let lat = o.deliveryLocation ? o.deliveryLocation.lat : null;
+        let lng = o.deliveryLocation ? o.deliveryLocation.lng : null;
+        scroller.innerHTML += `
+        <div style="min-width:100%; flex-shrink:0; text-align:center; cursor:pointer;" onclick="trackOrder('${o.id}', ${lat}, ${lng})">
+            🚀 Order #${o.displayId} arriving soon! <span style="text-decoration:underline;">Click to track</span>
+        </div>`;
+    });
+
+    if (activeDeliveryInterval) clearInterval(activeDeliveryInterval);
+    currentSlide = 0;
+    scroller.style.transform = `translateX(0%)`;
+
+    if (orders.length > 1) {
+        activeDeliveryInterval = setInterval(() => {
+            currentSlide = (currentSlide + 1) % orders.length;
+            scroller.style.transform = `translateX(-${currentSlide * 100}%)`;
+        }, 3500);
+    }
+}
+
 /* =========================
-   STORE MASTER SETTINGS (NEW)
+   STORE MASTER SETTINGS
 ========================= */
 db.collection("settings").doc("store").onSnapshot(doc => {
     if(doc.exists) {
         let data = doc.data();
-        isStoreOpen = data.isStoreOpen !== false; // defaults true if not set
+        isStoreOpen = data.isStoreOpen !== false; 
         allowCOD = data.allowCOD !== false;
         allowOnline = data.allowOnline !== false;
+
+        // Apply Custom Audio if Admin set it
+        if(data.notificationSoundUrl) {
+            notificationAudio.src = data.notificationSoundUrl;
+        }
+
+        // Apply Scrolling Announcement
+        const announcementBar = document.getElementById('announcementBar');
+        if(data.announcementText && data.announcementText.trim() !== "") {
+            announcementBar.style.display = "block";
+            document.getElementById('announcementText').innerText = data.announcementText;
+        } else {
+            announcementBar.style.display = "none";
+        }
     }
 
-    // Toggle Store Closed Banner
     const closedBanner = document.getElementById('storeClosedBanner');
-    if(!isStoreOpen) {
-        closedBanner.style.display = "block";
-    } else {
-        closedBanner.style.display = "none";
-    }
+    if(!isStoreOpen) closedBanner.style.display = "block"; else closedBanner.style.display = "none";
 
-    // Update dynamic payment dropdown options
     updatePaymentOptions();
-    
-    // Re-render items (locks buttons if closed)
     render(); 
 });
+
+function openProfile() { if(!user) { alert("Please login first"); return; } closeMenu(); document.getElementById('profileModal').style.display = "flex"; }
+function saveProfile() { if(!user) return; const name = document.getElementById('profileName').value.trim(); const phone = document.getElementById('profilePhone').value.trim(); db.collection("users").doc(user.uid).set({ name, phone }, { merge: true }).then(() => { alert("Profile saved!"); document.getElementById('profileModal').style.display = "none"; }); }
 
 function updatePaymentOptions() {
     const paySelect = document.getElementById('payment');
     let currentVal = paySelect.value;
-    
     paySelect.innerHTML = '<option value="">Select Payment Method</option>';
     if(allowCOD) { paySelect.innerHTML += '<option value="COD">Cash on Delivery</option>'; }
     if(allowOnline) { paySelect.innerHTML += '<option value="ONLINE">Pay Online (UPI)</option>'; }
-    
-    // Reset selection if the option they had is now disabled
-    if ((currentVal === 'COD' && !allowCOD) || (currentVal === 'ONLINE' && !allowOnline)) {
-        paySelect.value = "";
-        handlePaymentSelection();
-    } else {
-        paySelect.value = currentVal;
-    }
+    if ((currentVal === 'COD' && !allowCOD) || (currentVal === 'ONLINE' && !allowOnline)) { paySelect.value = ""; handlePaymentSelection(); } 
+    else { paySelect.value = currentVal; }
 }
 
-/* =========================
-   LOAD VENDOR PAYMENT SETTINGS
-========================= */
 db.collection("settings").doc("payment").onSnapshot(doc => {
-    if(doc.exists) {
-        let data = doc.data();
-        vendorUpiId = data.upiId || "";
-        vendorQrUrl = data.qrUrl || "https://via.placeholder.com/150?text=No+QR+Found";
-        const qrImage = document.getElementById('paymentQrImage');
-        if(qrImage) qrImage.src = vendorQrUrl;
-    }
+    if(doc.exists) { let data = doc.data(); vendorUpiId = data.upiId || ""; vendorQrUrl = data.qrUrl || "https://via.placeholder.com/150?text=No+QR+Found"; const qrImage = document.getElementById('paymentQrImage'); if(qrImage) qrImage.src = vendorQrUrl; }
 });
 
 /* =========================
    MENU & CART LOGIC
 ========================= */
 db.collection("items").onSnapshot(snap => {
-    document.getElementById('itemsList').innerHTML = "";
-    itemsCache = {};
+    document.getElementById('itemsList').innerHTML = ""; itemsCache = {};
     snap.forEach(doc => {
-        let i = doc.data();
-        itemsCache[doc.id] = i;
+        let i = doc.data(); itemsCache[doc.id] = i;
         document.getElementById('itemsList').innerHTML += `
         <div class="menu-card">
             <div class="menu-info">
@@ -356,11 +443,7 @@ db.collection("items").onSnapshot(snap => {
     setTimeout(render, 100);
 });
 
-function add(id) { 
-    if(!isStoreOpen) return; 
-    if(!cart[id]) cart[id] = {...itemsCache[id], qty: 0}; 
-    cart[id].qty++; render(); 
-}
+function add(id) { if(!isStoreOpen) return; if(!cart[id]) cart[id] = {...itemsCache[id], qty: 0}; cart[id].qty++; render(); }
 function inc(id) { if(!isStoreOpen) return; cart[id].qty++; render(); }
 function dec(id) { cart[id].qty--; if(cart[id].qty <= 0) delete cart[id]; render(); }
 
@@ -369,356 +452,125 @@ function render() {
     Object.keys(itemsCache).forEach(id => {
         let el = document.getElementById("ctrl-" + id);
         if(!el) return;
-
-        // If Store is closed, show greyed out button
-        if(!isStoreOpen) {
-            el.innerHTML = `<button class="btn-add-initial" style="color:#aaa; cursor:not-allowed;" disabled>CLOSED</button>`;
-            return;
-        }
-
+        if(!isStoreOpen) { el.innerHTML = `<button class="btn-add-initial" style="color:#aaa; cursor:not-allowed;" disabled>CLOSED</button>`; return; }
         let c = cart[id];
-        if(c) {
-            el.innerHTML = `<div class="qty-controls"><button onclick="dec('${id}')">-</button><span>${c.qty}</span><button onclick="inc('${id}')">+</button></div>`;
-        } else {
-            el.innerHTML = `<button class="btn-add-initial" onclick="add('${id}')">ADD</button>`;
-        }
+        if(c) { el.innerHTML = `<div class="qty-controls"><button onclick="dec('${id}')">-</button><span>${c.qty}</span><button onclick="inc('${id}')">+</button></div>`; } 
+        else { el.innerHTML = `<button class="btn-add-initial" onclick="add('${id}')">ADD</button>`; }
     });
 
     for(let id in cart) { total += cart[id].price * cart[id].qty; count += cart[id].qty; }
     const cartBtn = document.getElementById('cartBtn');
-    
-    // Hide cart entirely if store is closed
-    if(!isStoreOpen) {
-        cartBtn.style.display = "none";
-    } else {
-        cartBtn.style.display = count ? "flex" : "none";
-    }
-    
+    if(!isStoreOpen) { cartBtn.style.display = "none"; } else { cartBtn.style.display = count ? "flex" : "none"; }
     document.getElementById('cartCount').innerText = `${count} ITEM${count > 1 ? 'S' : ''} | ₹${total}`;
     updateCart();
 }
 
 function updateCart() {
-    const cartItems = document.getElementById('cartItems');
-    cartItems.innerHTML = "";
-    let total = 0;
-    for(let id in cart) {
-        let c = cart[id];
-        let sub = c.price * c.qty;
-        total += sub;
-        cartItems.innerHTML += `
-        <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:15px;">
-            <div style="display:flex; align-items:center; gap: 10px;">
-                <span style="border:1px solid #16a34a; color:#16a34a; padding: 2px 6px; border-radius:4px; font-size:12px; font-weight:bold;">${c.qty}</span>
-                <span>${c.name}</span>
-            </div>
-            <b>₹${sub}</b>
-        </div>`;
-    }
+    const cartItems = document.getElementById('cartItems'); cartItems.innerHTML = ""; let total = 0;
+    for(let id in cart) { let c = cart[id]; let sub = c.price * c.qty; total += sub; cartItems.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:15px;"><div style="display:flex; align-items:center; gap: 10px;"><span style="border:1px solid #16a34a; color:#16a34a; padding: 2px 6px; border-radius:4px; font-size:12px; font-weight:bold;">${c.qty}</span><span>${c.name}</span></div><b>₹${sub}</b></div>`; }
     document.getElementById("total").innerText = total;
 }
 
-function openCart() { 
-    if(!isStoreOpen) { alert("Store is currently closed."); return; }
-    document.getElementById('cartModal').style.display = "flex"; 
-}
+function openCart() { if(!isStoreOpen) { alert("Store is currently closed."); return; } document.getElementById('cartModal').style.display = "flex"; }
 
 function checkout() { 
     if(!user) { alert("Please login first"); return; }
     document.getElementById('cartModal').style.display = "none"; 
-    
-    document.getElementById('checkoutName').value = userProfile.name || user.displayName || "";
-    document.getElementById('checkoutPhone').value = userProfile.phone || "";
-
-    document.getElementById('payment').value = "";
-    document.getElementById('upiPaymentSection').style.display = "none";
-
+    document.getElementById('checkoutName').value = userProfile.name || user.displayName || ""; document.getElementById('checkoutPhone').value = userProfile.phone || "";
+    document.getElementById('payment').value = ""; document.getElementById('upiPaymentSection').style.display = "none";
     document.getElementById('checkoutModal').style.display = "flex"; 
 }
 
-/* =========================
-   MAP & LOCATION PICKER
-========================= */
 let pickerMap, geocoder;
 function openLocationPicker() {
-    document.getElementById('locationPickerModal').style.display = "flex";
-    document.getElementById('pickedAddressText').innerText = "Locating your device...";
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            initPickerMap(pos.coords.latitude, pos.coords.longitude);
-        }, err => {
-            initPickerMap(17.385, 78.4867);
-        }, { enableHighAccuracy: true });
-    } else { initPickerMap(17.385, 78.4867); }
+    document.getElementById('locationPickerModal').style.display = "flex"; document.getElementById('pickedAddressText').innerText = "Locating your device...";
+    if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => { initPickerMap(pos.coords.latitude, pos.coords.longitude); }, err => { initPickerMap(17.385, 78.4867); }, { enableHighAccuracy: true }); } else { initPickerMap(17.385, 78.4867); }
 }
 
 function initPickerMap(lat, lng) {
-    const centerPos = { lat: lat, lng: lng };
-    deliveryLat = lat; deliveryLng = lng;
+    const centerPos = { lat: lat, lng: lng }; deliveryLat = lat; deliveryLng = lng;
     if(!geocoder) geocoder = new google.maps.Geocoder();
     pickerMap = new google.maps.Map(document.getElementById("pickerMap"), { center: centerPos, zoom: 17, disableDefaultUI: true, zoomControl: true });
     geocodePosition(pickerMap.getCenter());
     google.maps.event.addListener(pickerMap, 'dragstart', function() { document.getElementById('pickedAddressText').innerText = "Moving..."; });
-    google.maps.event.addListener(pickerMap, 'idle', function() {
-        deliveryLat = pickerMap.getCenter().lat(); deliveryLng = pickerMap.getCenter().lng();
-        document.getElementById('pickedAddressText').innerText = "Fetching address...";
-        geocodePosition(pickerMap.getCenter());
-    });
+    google.maps.event.addListener(pickerMap, 'idle', function() { deliveryLat = pickerMap.getCenter().lat(); deliveryLng = pickerMap.getCenter().lng(); document.getElementById('pickedAddressText').innerText = "Fetching address..."; geocodePosition(pickerMap.getCenter()); });
 }
 
-function geocodePosition(pos) {
-    geocoder.geocode({ latLng: pos }, function(responses, status) {
-        if (status === 'OK' && responses && responses.length > 0) {
-            document.getElementById('pickedAddressText').innerText = responses[0].formatted_address;
-        } else {
-            document.getElementById('pickedAddressText').innerText = "Area address not found. Pin location saved.";
-        }
-    });
-}
+function geocodePosition(pos) { geocoder.geocode({ latLng: pos }, function(responses, status) { if (status === 'OK' && responses && responses.length > 0) { document.getElementById('pickedAddressText').innerText = responses[0].formatted_address; } else { document.getElementById('pickedAddressText').innerText = "Area address not found. Pin location saved."; } }); }
+function confirmPickedLocation() { document.getElementById('locationPickerModal').style.display = "none"; document.getElementById('gpsIcon').innerText = "✅"; document.getElementById('gpsText').innerText = "Map Location Saved!"; document.getElementById('manualAddressContainer').style.display = "none"; document.getElementById('specificAddressContainer').style.display = "block"; document.getElementById('displayGeocodedAddress').innerText = document.getElementById('pickedAddressText').innerText; }
 
-function confirmPickedLocation() {
-    document.getElementById('locationPickerModal').style.display = "none";
-    document.getElementById('gpsIcon').innerText = "✅";
-    document.getElementById('gpsText').innerText = "Map Location Saved!";
-    document.getElementById('manualAddressContainer').style.display = "none";
-    document.getElementById('specificAddressContainer').style.display = "block";
-    const fetchedAddress = document.getElementById('pickedAddressText').innerText;
-    document.getElementById('displayGeocodedAddress').innerText = fetchedAddress;
-}
-
-/* =========================
-   PAYMENT LOGIC
-========================= */
 function handlePaymentSelection() {
-    const paymentMethod = document.getElementById('payment').value;
-    const upiSection = document.getElementById('upiPaymentSection');
-    
+    const paymentMethod = document.getElementById('payment').value; const upiSection = document.getElementById('upiPaymentSection');
     if (paymentMethod === "ONLINE") {
-        if(!vendorUpiId) {
-            alert("Online payment is currently unavailable. Please select Cash on Delivery.");
-            document.getElementById('payment').value = "";
-            upiSection.style.display = "none";
-            return;
-        }
-
-        upiSection.style.display = "block";
-        let totalDisplay = 0;
-        for(let id in cart) { totalDisplay += cart[id].price * cart[id].qty; }
-        document.getElementById('upiAmountText').innerText = totalDisplay;
-
-        document.getElementById('upiAppBtn').onclick = () => { 
-            let currentTotal = 0;
-            for(let id in cart) { currentTotal += cart[id].price * cart[id].qty; }
-            const upiLink = `upi://pay?pa=${vendorUpiId}&pn=Order%20Payment&am=${currentTotal}&cu=INR`;
-            window.location.href = upiLink; 
-        };
-    } else {
-        upiSection.style.display = "none";
-    }
+        if(!vendorUpiId) { alert("Online payment is currently unavailable. Please select Cash on Delivery."); document.getElementById('payment').value = ""; upiSection.style.display = "none"; return; }
+        upiSection.style.display = "block"; let totalDisplay = 0; for(let id in cart) { totalDisplay += cart[id].price * cart[id].qty; } document.getElementById('upiAmountText').innerText = totalDisplay;
+        document.getElementById('upiAppBtn').onclick = () => { let currentTotal = 0; for(let id in cart) { currentTotal += cart[id].price * cart[id].qty; } const upiLink = `upi://pay?pa=${vendorUpiId}&pn=Order%20Payment&am=${currentTotal}&cu=INR`; window.location.href = upiLink; };
+    } else { upiSection.style.display = "none"; }
 }
 
-// ASYNC IMAGE UPLOAD & PLACE ORDER
 async function placeOrder() {
-    if(!isStoreOpen) { alert("Store is closed."); return; }
-    if(!user) { alert("Please login first"); return; }
-    
-    const orderName = document.getElementById('checkoutName').value.trim();
-    const orderPhone = document.getElementById('checkoutPhone').value.trim();
+    if(!isStoreOpen) { alert("Store is closed."); return; } if(!user) { alert("Please login first"); return; }
+    const orderName = document.getElementById('checkoutName').value.trim(); const orderPhone = document.getElementById('checkoutPhone').value.trim();
     if(!orderName || !orderPhone) { alert("Please enter your Name and Phone Number."); return; }
-
-    let finalAddressText = "";
-    const manualInput = document.getElementById('manualAddress').value;
-    const flatNum = document.getElementById('flatNumber').value;
-    const landmark = document.getElementById('landmark').value;
-    const geocodedText = document.getElementById('displayGeocodedAddress').innerText;
-    const payment = document.getElementById('payment').value;
-
-    if (deliveryLat && deliveryLng) {
-        if (!flatNum.trim()) { alert("Please enter your House/Flat Number!"); return; }
-        let landmarkText = landmark.trim() ? `, Landmark: ${landmark}` : "";
-        finalAddressText = `${flatNum}${landmarkText}, ${geocodedText} (Map Pin Provided)`;
-    } else {
-        if (!manualInput.trim()) { alert("Please enter your full delivery address"); return; }
-        finalAddressText = manualInput;
-    }
-
+    let finalAddressText = ""; const manualInput = document.getElementById('manualAddress').value; const flatNum = document.getElementById('flatNumber').value; const landmark = document.getElementById('landmark').value; const geocodedText = document.getElementById('displayGeocodedAddress').innerText; const payment = document.getElementById('payment').value;
+    if (deliveryLat && deliveryLng) { if (!flatNum.trim()) { alert("Please enter your House/Flat Number!"); return; } finalAddressText = `${flatNum}${landmark.trim() ? `, Landmark: ${landmark}` : ""}, ${geocodedText} (Map Pin Provided)`; } else { if (!manualInput.trim()) { alert("Please enter your full delivery address"); return; } finalAddressText = manualInput; }
     if(!payment) { alert("Select payment method"); return; }
-
-    let screenshotUrl = null;
-    const fileInput = document.getElementById('paymentScreenshot');
-
-    if (payment === "ONLINE") {
-        if (fileInput.files.length === 0) {
-            alert("Please upload the payment screenshot before placing your order.");
-            return;
-        }
-    }
-
-    const btn = document.getElementById('placeOrderBtn');
-    btn.innerText = "Uploading & Placing Order...";
-    btn.disabled = true;
-    btn.style.opacity = "0.7";
-
+    let screenshotUrl = null; const fileInput = document.getElementById('paymentScreenshot');
+    if (payment === "ONLINE") { if (fileInput.files.length === 0) { alert("Please upload the payment screenshot before placing your order."); return; } }
+    const btn = document.getElementById('placeOrderBtn'); btn.innerText = "Uploading & Placing Order..."; btn.disabled = true; btn.style.opacity = "0.7";
     try {
         db.collection("users").doc(user.uid).set({ name: orderName, phone: orderPhone }, { merge: true });
-
-        if (payment === "ONLINE" && fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            const storageRef = storage.ref();
-            const screenshotRef = storageRef.child(`payment_screenshots/${user.uid}_${Date.now()}_${file.name}`);
-            await screenshotRef.put(file);
-            screenshotUrl = await screenshotRef.getDownloadURL();
-        }
-
-        let items = [];
-        let total = 0;
-        for(let id in cart) {
-            items.push(cart[id]);
-            total += cart[id].price * cart[id].qty;
-        }
-
+        if (payment === "ONLINE" && fileInput.files.length > 0) { const file = fileInput.files[0]; const storageRef = storage.ref(); const screenshotRef = storageRef.child(`payment_screenshots/${user.uid}_${Date.now()}_${file.name}`); await screenshotRef.put(file); screenshotUrl = await screenshotRef.getDownloadURL(); }
+        let items = []; let total = 0; for(let id in cart) { items.push(cart[id]); total += cart[id].price * cart[id].qty; }
         const counterRef = db.collection("settings").doc("orderCounter");
-        let newOrderNumber = await db.runTransaction(async (transaction) => {
-            const counterDoc = await transaction.get(counterRef);
-            let nextNum = 1000;
-            if (counterDoc.exists && counterDoc.data().lastNumber) { nextNum = counterDoc.data().lastNumber + 1; }
-            transaction.set(counterRef, { lastNumber: nextNum }, { merge: true });
-            return nextNum;
-        });
-
-        await db.collection("orders").add({
-            userId: user.uid,
-            userName: orderName,
-            userPhone: orderPhone,
-            orderNumber: newOrderNumber,
-            items,
-            total,
-            address: finalAddressText,
-            deliveryLocation: (deliveryLat && deliveryLng) ? { lat: deliveryLat, lng: deliveryLng } : null,
-            payment: payment,
-            paymentScreenshot: screenshotUrl,
-            status: "pending",
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
+        let newOrderNumber = await db.runTransaction(async (transaction) => { const counterDoc = await transaction.get(counterRef); let nextNum = 1000; if (counterDoc.exists && counterDoc.data().lastNumber) { nextNum = counterDoc.data().lastNumber + 1; } transaction.set(counterRef, { lastNumber: nextNum }, { merge: true }); return nextNum; });
+        await db.collection("orders").add({ userId: user.uid, userName: orderName, userPhone: orderPhone, orderNumber: newOrderNumber, items, total, address: finalAddressText, deliveryLocation: (deliveryLat && deliveryLng) ? { lat: deliveryLat, lng: deliveryLng } : null, payment: payment, paymentScreenshot: screenshotUrl, status: "pending", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         alert("Order placed successfully!");
-        
-        cart = {};
-        deliveryLat = null; deliveryLng = null; 
-        document.getElementById('checkoutModal').style.display = "none";
-        document.getElementById('manualAddress').value = "";
-        document.getElementById('flatNumber').value = "";
-        document.getElementById('landmark').value = "";
-        fileInput.value = "";
-        document.getElementById('specificAddressContainer').style.display = "none";
-        document.getElementById('manualAddressContainer').style.display = "block";
-        document.getElementById('upiPaymentSection').style.display = "none";
-        document.getElementById('payment').value = "";
-        document.getElementById('gpsText').innerText = "Set exact map location";
-        document.getElementById('gpsIcon').innerText = "📍";
-        render();
-
-    } catch (error) {
-        console.error("Error placing order: ", error);
-        alert("Something went wrong. Please check your connection and try again.");
-    } finally {
-        btn.innerText = "Place Order";
-        btn.disabled = false;
-        btn.style.opacity = "1";
-    }
+        cart = {}; deliveryLat = null; deliveryLng = null; document.getElementById('checkoutModal').style.display = "none"; document.getElementById('manualAddress').value = ""; document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('manualAddressContainer').style.display = "block"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('payment').value = ""; document.getElementById('gpsText').innerText = "Set exact map location"; document.getElementById('gpsIcon').innerText = "📍"; render();
+    } catch (error) { console.error("Error placing order: ", error); alert("Something went wrong. Please check your connection and try again."); } finally { btn.innerText = "Place Order"; btn.disabled = false; btn.style.opacity = "1"; }
 }
 
 function openOrders() {
-    document.getElementById('ordersModal').style.display = "flex";
-    closeMenu();
-    if(!user) return;
-
+    document.getElementById('ordersModal').style.display = "flex"; closeMenu(); if(!user) return;
     db.collection("orders").where("userId", "==", user.uid).onSnapshot(snap => {
-        let data = [];
-        snap.forEach(doc => data.push({id: doc.id, ...doc.data()}));
-        data.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-
+        let data = []; snap.forEach(doc => data.push({id: doc.id, ...doc.data()})); data.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
         document.getElementById('ordersList').innerHTML = "";
-
         data.forEach(o => {
-            let itemsText = o.items ? o.items.map(i => `${i.qty}x ${i.name}`).join(", ") : "No items";
-            let color = o.status === "delivered" ? "#16a34a" : (o.status === "out for delivery" ? "#2563eb" : "#f59e0b");
-            let savedLat = o.deliveryLocation ? o.deliveryLocation.lat : null;
-            let savedLng = o.deliveryLocation ? o.deliveryLocation.lng : null;
-
-            let displayId = o.orderNumber ? o.orderNumber : o.id.slice(0,6).toUpperCase();
-
-            let trackBtn = o.status === "out for delivery" 
-                ? `<button onclick="trackOrder('${o.id}', ${savedLat}, ${savedLng})" style="margin-top:12px; width:100%; padding:12px; background:#eefce9; color:#16a34a; border:1px solid #16a34a; border-radius:8px; cursor:pointer; font-weight:bold; font-size:15px;">📍 Track Live Order</button>` : "";
-
-            document.getElementById('ordersList').innerHTML += `
-            <div style="background:#fff; padding:15px; margin-bottom:15px; border-radius:12px; border: 1px solid #eaeaea;">
-                <div style="display:flex; justify-content:space-between; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;">
-                    <b style="color: #444;">Order #${displayId}</b>
-                    <span style="color:${color}; font-weight:bold; text-transform: capitalize;">${o.status}</span>
-                </div>
-                <div style="color:#555; font-size: 14px; line-height: 1.5;">${itemsText}</div>
-                <div style="margin-top:10px; font-weight:bold; font-size: 16px;">₹${o.total}</div>
-                ${trackBtn} 
-            </div>`;
+            let itemsText = o.items ? o.items.map(i => `${i.qty}x ${i.name}`).join(", ") : "No items"; let color = o.status === "delivered" ? "#16a34a" : (o.status === "out for delivery" ? "#2563eb" : "#f59e0b");
+            let savedLat = o.deliveryLocation ? o.deliveryLocation.lat : null; let savedLng = o.deliveryLocation ? o.deliveryLocation.lng : null; let displayId = o.orderNumber ? o.orderNumber : o.id.slice(0,6).toUpperCase();
+            let trackBtn = o.status === "out for delivery" ? `<button onclick="trackOrder('${o.id}', ${savedLat}, ${savedLng})" style="margin-top:12px; width:100%; padding:12px; background:#eefce9; color:#16a34a; border:1px solid #16a34a; border-radius:8px; cursor:pointer; font-weight:bold; font-size:15px;">📍 Track Live Order</button>` : "";
+            document.getElementById('ordersList').innerHTML += `<div style="background:#fff; padding:15px; margin-bottom:15px; border-radius:12px; border: 1px solid #eaeaea;"><div style="display:flex; justify-content:space-between; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;"><b style="color: #444;">Order #${displayId}</b><span style="color:${color}; font-weight:bold; text-transform: capitalize;">${o.status}</span></div><div style="color:#555; font-size: 14px; line-height: 1.5;">${itemsText}</div><div style="margin-top:10px; font-weight:bold; font-size: 16px;">₹${o.total}</div>${trackBtn}</div>`;
         });
     });
 }
 
 window.onclick = e => { if(e.target.classList.contains("modal")) { e.target.style.display = "none"; if(unsubscribeTracking) unsubscribeTracking(); } };
 
-let map, deliveryMarker, userMarker;
-let directionsService, directionsRenderer;
-let unsubscribeTracking;
-let routeDrawn = false; 
+let map, deliveryMarker, userMarker; let directionsService, directionsRenderer; let unsubscribeTracking; let routeDrawn = false; 
 
 function trackOrder(orderId, destinationLat, destinationLng) {
-    document.getElementById('mapModal').style.display = "flex";
-    document.getElementById('statusText').innerText = "Connecting to driver...";
-    routeDrawn = false;
-    let dropOffLocation;
-    if (destinationLat && destinationLng) { dropOffLocation = { lat: destinationLat, lng: destinationLng }; } 
-    else { dropOffLocation = { lat: 17.385, lng: 78.4867 }; }
+    document.getElementById('activeDeliveriesBar').style.display = 'none'; // Hide scroller while map is open
+    document.getElementById('mapModal').style.display = "flex"; document.getElementById('statusText').innerText = "Connecting to driver..."; routeDrawn = false;
+    let dropOffLocation; if (destinationLat && destinationLng) { dropOffLocation = { lat: destinationLat, lng: destinationLng }; } else { dropOffLocation = { lat: 17.385, lng: 78.4867 }; }
     initializeMapTracking(orderId, dropOffLocation);
 }
 
 function initializeMapTracking(orderId, dropOffLocation) {
     if(typeof google === 'undefined') { alert("Google Maps failed to load."); return; }
-    map = new google.maps.Map(document.getElementById("map"), { center: dropOffLocation, zoom: 14, disableDefaultUI: true });
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: true, polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } });
-    userMarker = new google.maps.Marker({ position: dropOffLocation, map: map, icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" } });
-    deliveryMarker = new google.maps.Marker({ map: map, icon: { url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", scaledSize: new google.maps.Size(35, 35) } });
-
+    map = new google.maps.Map(document.getElementById("map"), { center: dropOffLocation, zoom: 14, disableDefaultUI: true }); directionsService = new google.maps.DirectionsService(); directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: true, polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } }); userMarker = new google.maps.Marker({ position: dropOffLocation, map: map, icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" } }); deliveryMarker = new google.maps.Marker({ map: map, icon: { url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", scaledSize: new google.maps.Size(35, 35) } });
     if(unsubscribeTracking) unsubscribeTracking();
-
     unsubscribeTracking = db.collection("orders").doc(orderId).onSnapshot(doc => {
-        let data = doc.data();
-        if(!data || !data.location) return;
-        let driverPos = { lat: data.location.lat, lng: data.location.lng };
-        deliveryMarker.setPosition(driverPos);
-
+        let data = doc.data(); if(!data || !data.location) return; let driverPos = { lat: data.location.lat, lng: data.location.lng }; deliveryMarker.setPosition(driverPos);
         if(!routeDrawn) {
-            document.getElementById('statusText').innerText = "Calculating route...";
-            directionsService.route({
-                origin: driverPos, destination: dropOffLocation, travelMode: google.maps.TravelMode.DRIVING
-            }, (response, status) => {
-                if (status === 'OK') {
-                    directionsRenderer.setDirections(response);
-                    let leg = response.routes[0].legs[0];
-                    document.getElementById('eta').innerText = leg.duration.text;
-                    document.getElementById('statusText').innerText = `Driver is ${leg.distance.text} away`;
-                    routeDrawn = true;
-                } else {
-                    document.getElementById('statusText').innerText = "Driver is on the move!";
-                }
+            document.getElementById('statusText').innerText = "Calculating route..."; directionsService.route({ origin: driverPos, destination: dropOffLocation, travelMode: google.maps.TravelMode.DRIVING }, (response, status) => {
+                if (status === 'OK') { directionsRenderer.setDirections(response); let leg = response.routes[0].legs[0]; document.getElementById('eta').innerText = leg.duration.text; document.getElementById('statusText').innerText = `Driver is ${leg.distance.text} away`; routeDrawn = true; } else { document.getElementById('statusText').innerText = "Driver is on the move!"; }
             });
         }
     });
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry,places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry,places"></script>
 
 </body>
 </html>
