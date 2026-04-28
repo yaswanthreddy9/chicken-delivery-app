@@ -324,11 +324,8 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
             </div>
             <div id="statusText" style="color:#666; font-size: 14px; margin-bottom: 15px;">Connecting to driver GPS...</div>
             
-            <div id="noDriverText" style="text-align:center; color:#666; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Assigning a delivery partner soon...</div>
-            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">
-                📞 Call Partner
-            </a>
-            
+            <div id="noDriverText" style="text-align:center; color:#dc2626; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Assigning a delivery partner soon...</div>
+            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">📞 Call Partner</a>
             <button onclick="document.getElementById('mapModal').style.display='none'" style="width:100%; padding:10px; background:#ddd; color:#333; border:none; border-radius:8px; margin-top:10px; cursor:pointer; font-weight:bold;">Close Map</button>
         </div>
     </div>
@@ -350,9 +347,7 @@ firebase.initializeApp({
   apiKey: "AIzaSyBSfrLwVh9m8RIcTJDURvEnX1VOeeiSJ_A",
   authDomain: "product-app01.firebaseapp.com",
   projectId: "product-app01",
-  storageBucket: "product-app01.firebasestorage.app",
-  messagingSenderId: "740761845598",
-  appId: "1:740761845598:web:96dad31d8e5ccd339dd9cf"
+  storageBucket: "product-app01.firebasestorage.app"
 });
 
 const db = firebase.firestore();
@@ -372,7 +367,6 @@ let selectedSavedAddressIndex = -1;
 let mapContext = 'checkout'; 
 let tempUnsavedAddressData = null; 
 
-// PROMO & AUDIO
 let promoVisits = parseInt(localStorage.getItem("promoVisits") || "0"); promoVisits++; localStorage.setItem("promoVisits", promoVisits);
 let shouldShowPromo = (promoVisits === 1 || promoVisits % 4 === 0); let promoShownThisSession = false;
 function closePromo() { document.getElementById('promoModal').style.display = 'none'; }
@@ -430,7 +424,7 @@ function sendOTP() {
         document.getElementById('otpVerifyStep').style.display = "block";
         btn.innerText = "Get OTP"; btn.disabled = false;
     }).catch((error) => {
-        showToast("❌ Failed to send OTP. Please try again.");
+        showToast("❌ Failed to send OTP. Add domain to Firebase!");
         if (window.recaptchaVerifier) { window.recaptchaVerifier.render().then(w => grecaptcha.reset(w)); }
         btn.innerText = "Get OTP"; btn.disabled = false;
     });
@@ -855,15 +849,17 @@ function trackOrder(orderId, destinationLat, destinationLng) {
     initializeMapTracking(orderId, dropOffLocation);
 }
 
-// SMART DUAL TRACKING: Pulls from driver profile if order location is asleep
+// SMART TRACKING ENGINE: Fixed broken map marker URLs and directly reads the order document.
 function initializeMapTracking(orderId, dropOffLocation) {
     if(typeof google === 'undefined') { showToast("⚠️ Map tracking unavailable."); return; }
     
     map = new google.maps.Map(document.getElementById("map"), { center: dropOffLocation, zoom: 14, disableDefaultUI: true }); 
     directionsService = new google.maps.DirectionsService(); 
     directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: true, polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } }); 
-    userMarker = new google.maps.Marker({ position: dropOffLocation, map: map, icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" } }); 
-    deliveryMarker = new google.maps.Marker({ map: map, icon: { url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", scaledSize: new google.maps.Size(35, 35) } });
+    
+    // Official Google Maps Markers (Replaces the broken image links)
+    userMarker = new google.maps.Marker({ position: dropOffLocation, map: map, icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png" }); 
+    deliveryMarker = new google.maps.Marker({ map: map, icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png" });
     
     if(unsubscribeTracking) unsubscribeTracking();
     
@@ -881,41 +877,33 @@ function initializeMapTracking(orderId, dropOffLocation) {
         } else { 
             driverCallBtn.style.display = "none"; 
             noDriverText.style.display = "block"; 
+            noDriverText.innerText = "Assigning a delivery partner soon...";
         }
 
-        // Real-time Driver GPS Fetcher
-        if (data.driverId) {
-            db.collection("drivers").doc(data.driverId).onSnapshot(driverDoc => {
-                let driverData = driverDoc ? driverDoc.data() : null;
-                
-                // Prioritize the specific order location, otherwise fallback to the driver's global live location
-                let loc = data.location || (driverData && driverData.location ? driverData.location : null);
-                
-                if(!loc) {
-                    document.getElementById('statusText').innerText = "Partner is starting trip... Waiting for GPS lock.";
-                    return;
-                }
-                
-                let driverPos = { lat: loc.lat, lng: loc.lng }; 
-                deliveryMarker.setPosition(driverPos);
-                
-                if(!routeDrawn) { 
-                    document.getElementById('statusText').innerText = "Calculating route..."; 
-                    directionsService.route({ origin: driverPos, destination: dropOffLocation, travelMode: google.maps.TravelMode.DRIVING }, (response, status) => { 
-                        if (status === 'OK') { 
-                            directionsRenderer.setDirections(response); 
-                            let leg = response.routes[0].legs[0]; 
-                            document.getElementById('eta').innerText = leg.duration.text; 
-                            document.getElementById('statusText').innerText = `Partner is ${leg.distance.text} away`; 
-                            routeDrawn = true; 
-                        } else { 
-                            document.getElementById('statusText').innerText = "Partner is on the move!"; 
-                        } 
-                    }); 
+        // Reads GPS data directly from the driver's phone transmitting to the order document
+        if(!data.location || !data.location.lat) {
+            document.getElementById('statusText').innerText = "Partner is starting trip... Waiting for GPS lock.";
+            return;
+        } 
+        
+        let driverPos = { lat: data.location.lat, lng: data.location.lng }; 
+        deliveryMarker.setPosition(driverPos);
+        
+        if(!routeDrawn) {
+            document.getElementById('statusText').innerText = "Calculating route..."; 
+            directionsService.route({ origin: driverPos, destination: dropOffLocation, travelMode: google.maps.TravelMode.DRIVING }, (response, status) => {
+                if (status === 'OK') { 
+                    directionsRenderer.setDirections(response); 
+                    let leg = response.routes[0].legs[0]; 
+                    document.getElementById('eta').innerText = leg.duration.text; 
+                    document.getElementById('statusText').innerText = `Partner is ${leg.distance.text} away`; 
+                    routeDrawn = true; 
+                } else { 
+                    document.getElementById('statusText').innerText = "Partner is on the move!"; 
                 }
             });
         } else {
-            document.getElementById('statusText').innerText = "Assigning a delivery partner soon...";
+             document.getElementById('statusText').innerText = "Partner is updating location...";
         }
     });
 }
