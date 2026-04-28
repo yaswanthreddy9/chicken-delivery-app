@@ -860,9 +860,19 @@ function initializeMapTracking(orderId, dropOffLocation) {
     directionsService = new google.maps.DirectionsService(); 
     directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: true, polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } }); 
     
-    // Removed the broken custom icons - defaults to red Google Maps pins
-    userMarker = new google.maps.Marker({ position: dropOffLocation, map: map }); 
-    deliveryMarker = new google.maps.Marker({ map: map });
+    // custom icons - defaults to red Google Maps pins
+    // Customer House Icon
+userMarker = new google.maps.Marker({ 
+    position: dropOffLocation, 
+    map: map,
+    icon: { url: "https://maps.google.com/mapfiles/kml/pal2/icon10.png", scaledSize: new google.maps.Size(32, 32) }
+}); 
+
+// Delivery Bike Icon
+deliveryMarker = new google.maps.Marker({ 
+    map: map,
+    icon: { url: "https://cdn-icons-png.flaticon.com/512/3500/3500833.png", scaledSize: new google.maps.Size(40, 40) }
+});
     
     if(unsubscribeTracking) unsubscribeTracking();
     
