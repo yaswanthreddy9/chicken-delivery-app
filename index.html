@@ -324,8 +324,11 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
             </div>
             <div id="statusText" style="color:#666; font-size: 14px; margin-bottom: 15px;">Connecting to driver GPS...</div>
             
-            <div id="noDriverText" style="text-align:center; color:#dc2626; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Assigning a delivery partner soon...</div>
-            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">📞 Call Partner</a>
+            <div id="noDriverText" style="text-align:center; color:#666; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Assigning a delivery partner soon...</div>
+            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">
+                📞 Call Partner
+            </a>
+            
             <button onclick="document.getElementById('mapModal').style.display='none'" style="width:100%; padding:10px; background:#ddd; color:#333; border:none; border-radius:8px; margin-top:10px; cursor:pointer; font-weight:bold;">Close Map</button>
         </div>
     </div>
@@ -849,7 +852,7 @@ function trackOrder(orderId, destinationLat, destinationLng) {
     initializeMapTracking(orderId, dropOffLocation);
 }
 
-// SMART TRACKING ENGINE: Fixed broken map marker URLs and directly reads the order document.
+// FIXED MAP TRACKING: Uses default Google pins to prevent 404 image crashes
 function initializeMapTracking(orderId, dropOffLocation) {
     if(typeof google === 'undefined') { showToast("⚠️ Map tracking unavailable."); return; }
     
@@ -857,9 +860,9 @@ function initializeMapTracking(orderId, dropOffLocation) {
     directionsService = new google.maps.DirectionsService(); 
     directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: true, polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } }); 
     
-    // Official Google Maps Markers (Replaces the broken image links)
-    userMarker = new google.maps.Marker({ position: dropOffLocation, map: map, icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png" }); 
-    deliveryMarker = new google.maps.Marker({ map: map, icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png" });
+    // Removed the broken custom icons - defaults to red Google Maps pins
+    userMarker = new google.maps.Marker({ position: dropOffLocation, map: map }); 
+    deliveryMarker = new google.maps.Marker({ map: map });
     
     if(unsubscribeTracking) unsubscribeTracking();
     
@@ -880,7 +883,7 @@ function initializeMapTracking(orderId, dropOffLocation) {
             noDriverText.innerText = "Assigning a delivery partner soon...";
         }
 
-        // Reads GPS data directly from the driver's phone transmitting to the order document
+        // Wait for Driver to start their GPS
         if(!data.location || !data.location.lat) {
             document.getElementById('statusText').innerText = "Partner is starting trip... Waiting for GPS lock.";
             return;
