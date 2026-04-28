@@ -118,7 +118,7 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 <div id="menu" class="menu">
     <div class="menu-header">
         <h3 id="userName" style="margin:0 0 5px 0;">Guest</h3>
-        <p id="userEmail" style="margin:0; font-size: 14px; opacity: 0.8;">Not logged in</p>
+        <p id="userPhoneDisplay" style="margin:0; font-size: 14px; opacity: 0.8;">Not logged in</p>
     </div>
     <div class="menu-item" onclick="openProfile()">👤 My Profile</div>
     <div class="menu-item" onclick="openAddresses()">📍 My Addresses</div>
@@ -145,22 +145,30 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 <div id="authModal" class="modal">
     <div class="box" style="height: auto; margin-top: auto; border-radius: 20px 20px 0 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 id="authTitle" style="margin:0; font-size: 22px;">Login</h3>
+            <h3 style="margin:0; font-size: 22px;">Login</h3>
             <span onclick="closeAuthModal()" style="font-size: 24px; cursor: pointer; color: #888;">✕</span>
         </div>
         
-        <input id="authEmail" type="email" placeholder="Email Address">
-        <input id="authPassword" type="password" placeholder="Password">
-        
-        <button id="authActionBtn" class="btn-primary" onclick="processAuth()">Login</button>
-        
-        <div style="text-align: center; margin-top: 15px; font-size: 14px;">
-            <span id="authToggleText" style="color: #666;">Don't have an account?</span>
-            <b id="authToggleAction" style="color: #16a34a; cursor: pointer;" onclick="toggleAuthMode()">Sign Up here</b>
+        <div id="phoneInputStep">
+            <p style="font-size: 14px; color: #666; margin-top: -10px; margin-bottom: 15px;">Enter your mobile number to get an OTP.</p>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" value="+91" disabled style="width: 60px; background: #eee; text-align: center; font-weight: bold; color: #333;">
+                <input id="phoneNumber" type="tel" placeholder="10-digit mobile number" style="flex: 1;" maxlength="10">
+            </div>
+            
+            <div id="recaptcha-container"></div>
+            
+            <button id="sendOtpBtn" class="btn-primary" onclick="sendOTP()">Get OTP</button>
         </div>
-        <div style="text-align: center; margin-top: 15px; font-size: 14px;">
-            <b style="color: #2563eb; cursor: pointer;" onclick="resetPassword()">Forgot Password?</b>
+
+        <div id="otpVerifyStep" style="display: none;">
+            <p style="font-size: 14px; color: #666; margin-top: -10px; margin-bottom: 15px;">Enter the 6-digit code sent to your phone.</p>
+            <input id="otpCode" type="number" placeholder="Enter 6-digit OTP" style="letter-spacing: 5px; text-align: center; font-weight: bold; font-size: 20px;">
+            
+            <button id="verifyOtpBtn" class="btn-primary" onclick="verifyOTP()">Verify & Login</button>
+            <button onclick="resetAuthUI()" style="width: 100%; background: #eee; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; color: #333;">Change Mobile Number</button>
         </div>
+
     </div>
 </div>
 
@@ -313,25 +321,35 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script> 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
 <script>
+// ==========================================
+// NEW: PRODUCT-APP01 CONFIGURATION
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBSfrLwVh9m8RIcTJDURvEnX1VOeeiSJ_A",
+  authDomain: "product-app01.firebaseapp.com",
+  projectId: "product-app01",
+  storageBucket: "product-app01.firebasestorage.app",
+  messagingSenderId: "740761845598",
+  appId: "1:740761845598:web:96dad31d8e5ccd339dd9cf"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
+const auth = firebase.auth();
+const storage = firebase.storage();
+const messaging = firebase.messaging(); // Initialize Push Notifications
+
+auth.useDeviceLanguage();
+
 // ==========================================
 // GLOBAL VARIABLES
 // ==========================================
 let pickerMap = null;
 let geocoder = null;
-
-firebase.initializeApp({
-    apiKey: "AIzaSyD7fBeJ4cV82_7OaWltZ8DDvEr-Y9B_mZA",
-    authDomain: "chicken-delivery-app-9e4f6.firebaseapp.com",
-    projectId: "chicken-delivery-app-9e4f6",
-    storageBucket: "chicken-delivery-app-9e4f6.firebasestorage.app"
-});
-
-const db = firebase.firestore();
-const auth = firebase.auth();
-const storage = firebase.storage();
-
 let vendorUpiId = ""; 
 let vendorQrUrl = "";
 let cart = {}; 
@@ -358,21 +376,11 @@ localStorage.setItem("promoVisits", promoVisits);
 let shouldShowPromo = (promoVisits === 1 || promoVisits % 4 === 0); 
 let promoShownThisSession = false;
 
-function closePromo() { 
-    document.getElementById('promoModal').style.display = 'none'; 
-}
-
+function closePromo() { document.getElementById('promoModal').style.display = 'none'; }
 let notificationAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
-function openMenu() { 
-    document.getElementById('menu').classList.add("open"); 
-    document.getElementById('overlay').style.display = "block"; 
-}
-
-function closeMenu() { 
-    document.getElementById('menu').classList.remove("open"); 
-    document.getElementById('overlay').style.display = "none"; 
-}
+function openMenu() { document.getElementById('menu').classList.add("open"); document.getElementById('overlay').style.display = "block"; }
+function closeMenu() { document.getElementById('menu').classList.remove("open"); document.getElementById('overlay').style.display = "none"; }
 
 function showToast(message) {
     const container = document.getElementById('toastContainer');
@@ -385,93 +393,128 @@ function showToast(message) {
 }
 
 // ==========================================
-// AUTHENTICATION SYSTEM (EMAIL/PASSWORD)
+// NEW: PUSH NOTIFICATION SYSTEM
 // ==========================================
-let isSignUpMode = false;
+function enablePushNotifications() {
+    messaging.requestPermission()
+    .then(() => {
+        console.log("Notification permission granted.");
+        return messaging.getToken();
+    })
+    .then((token) => {
+        console.log("Device FCM Token:", token);
+        // Save this unique device token to the user's profile in the database
+        if (user) {
+            db.collection("users").doc(user.uid).set({ 
+                fcmToken: token 
+            }, { merge: true });
+        }
+    })
+    .catch((err) => {
+        console.log("Unable to get permission to notify.", err);
+    });
+}
+
+// Listen for messages when the app is OPEN on screen
+messaging.onMessage((payload) => {
+    console.log("Message received. ", payload);
+    showToast(`🔔 ${payload.notification.title}: ${payload.notification.body}`);
+});
+
+// ==========================================
+// AUTHENTICATION SYSTEM (PHONE OTP)
+// ==========================================
+let confirmationResult = null;
+let recaptchaVerifier = null;
+
+function initRecaptcha() {
+    if (!recaptchaVerifier) {
+        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+            'size': 'invisible'
+        });
+    }
+}
 
 function openAuthModal() {
     closeMenu();
-    document.getElementById('authEmail').value = ""; 
-    document.getElementById('authPassword').value = "";
-    isSignUpMode = false; 
-    updateAuthUI();
+    resetAuthUI();
     document.getElementById('authModal').style.display = "flex";
+    initRecaptcha();
 }
 
 function closeAuthModal() { 
     document.getElementById('authModal').style.display = "none"; 
 }
 
-function toggleAuthMode() {
-    isSignUpMode = !isSignUpMode;
-    updateAuthUI();
+function resetAuthUI() {
+    document.getElementById('phoneNumber').value = "";
+    document.getElementById('otpCode').value = "";
+    document.getElementById('phoneInputStep').style.display = "block";
+    document.getElementById('otpVerifyStep').style.display = "none";
 }
 
-function updateAuthUI() {
-    const title = document.getElementById('authTitle');
-    const btn = document.getElementById('authActionBtn');
-    const toggleText = document.getElementById('authToggleText');
-    const toggleAction = document.getElementById('authToggleAction');
-
-    if (isSignUpMode) {
-        title.innerText = "Create Account"; 
-        btn.innerText = "Sign Up";
-        toggleText.innerText = "Already have an account?"; 
-        toggleAction.innerText = "Login here";
-    } else {
-        title.innerText = "Login"; 
-        btn.innerText = "Login";
-        toggleText.innerText = "Don't have an account?"; 
-        toggleAction.innerText = "Sign Up here";
+function sendOTP() {
+    const phoneNumberInput = document.getElementById('phoneNumber').value.trim();
+    if (phoneNumberInput.length !== 10) {
+        showToast("⚠️ Please enter a valid 10-digit mobile number.");
+        return;
     }
+
+    const formattedNumber = "+91" + phoneNumberInput; 
+    const btn = document.getElementById('sendOtpBtn');
+    
+    btn.disabled = true;
+    btn.innerText = "Sending OTP...";
+
+    auth.signInWithPhoneNumber(formattedNumber, recaptchaVerifier)
+        .then((confirmation) => {
+            confirmationResult = confirmation;
+            showToast("📲 OTP sent successfully!");
+            
+            document.getElementById('phoneInputStep').style.display = "none";
+            document.getElementById('otpVerifyStep').style.display = "block";
+            
+            btn.innerText = "Get OTP";
+            btn.disabled = false;
+        })
+        .catch((error) => {
+            console.error("Error during signInWithPhoneNumber", error);
+            showToast("❌ Failed to send OTP. " + error.message);
+            
+            if (recaptchaVerifier) {
+                recaptchaVerifier.render().then(function(widgetId) {
+                    grecaptcha.reset(widgetId);
+                });
+            }
+            btn.innerText = "Get OTP";
+            btn.disabled = false;
+        });
 }
 
-async function processAuth() {
-    const email = document.getElementById('authEmail').value.trim();
-    const password = document.getElementById('authPassword').value;
-    const btn = document.getElementById('authActionBtn');
-    
-    if(!email || !password) { 
-        showToast("⚠️ Please enter Email and Password"); 
-        return; 
+function verifyOTP() {
+    const code = document.getElementById('otpCode').value.trim();
+    if (code.length !== 6) {
+        showToast("⚠️ Please enter the 6-digit OTP.");
+        return;
     }
-    
-    btn.disabled = true; 
-    btn.innerText = "Processing...";
-    
-    try {
-        if (isSignUpMode) {
-            await auth.createUserWithEmailAndPassword(email, password);
-            showToast("🎉 Account created successfully!");
-        } else {
-            await auth.signInWithEmailAndPassword(email, password);
+
+    const btn = document.getElementById('verifyOtpBtn');
+    btn.disabled = true;
+    btn.innerText = "Verifying...";
+
+    confirmationResult.confirm(code)
+        .then((result) => {
             showToast("✅ Logged in successfully!");
-        }
-        closeAuthModal();
-    } catch (error) {
-        let msg = error.message;
-        if(error.code === 'auth/operation-not-allowed') {
-            msg = "Email/Password sign in is disabled. Admin must enable it in Firebase Console.";
-        }
-        showToast("❌ " + msg);
-    } finally {
-        btn.disabled = false; 
-        updateAuthUI();
-    }
-}
-
-async function resetPassword() {
-    const email = document.getElementById('authEmail').value.trim();
-    if(!email) { 
-        showToast("⚠️ Please type your email first"); 
-        return; 
-    }
-    try {
-        await auth.sendPasswordResetEmail(email);
-        showToast("📧 Password reset link sent to your email!");
-    } catch (error) { 
-        showToast("❌ " + error.message); 
-    }
+            closeAuthModal();
+            btn.disabled = false;
+            btn.innerText = "Verify & Login";
+        })
+        .catch((error) => {
+            console.error("Error while checking OTP", error);
+            showToast("❌ Invalid OTP. Please try again.");
+            btn.disabled = false;
+            btn.innerText = "Verify & Login";
+        });
 }
 
 function logout() { 
@@ -479,7 +522,7 @@ function logout() {
     closeMenu(); 
 }
 
-// SAFE AUTH LISTENER (Prevents ghost data crashes)
+// SAFE AUTH LISTENER
 auth.onAuthStateChanged(u => {
     user = u; 
     const loginBtn = document.getElementById('loginBtn');
@@ -489,35 +532,37 @@ auth.onAuthStateChanged(u => {
         loginBtn.onclick = logout;
         
         let safeName = "User";
-        if (u.email) {
-            safeName = u.email.split('@')[0];
-        } else if (u.displayName) {
-            safeName = u.displayName;
-        }
+        let displayPhone = u.phoneNumber || "No Phone";
         
         document.getElementById('userName').innerText = safeName; 
-        document.getElementById('userEmail').innerText = u.email || "No email";
+        document.getElementById('userPhoneDisplay').innerText = displayPhone;
         
         db.collection("users").doc(u.uid).onSnapshot(doc => {
             if(doc.exists) { 
                 userProfile = doc.data(); 
-                if(!userProfile.addresses) {
-                    userProfile.addresses = []; 
+                if(!userProfile.addresses) { userProfile.addresses = []; }
+                
+                if(userProfile.name) {
+                    document.getElementById('userName').innerText = userProfile.name;
                 }
             } else { 
-                userProfile = { name: safeName, phone: "", addresses: [] }; 
+                userProfile = { name: "", phone: displayPhone.replace("+91", ""), addresses: [] }; 
+                db.collection("users").doc(u.uid).set(userProfile, { merge: true });
             }
             
             document.getElementById('profileName').value = userProfile.name || "";
-            document.getElementById('profilePhone').value = userProfile.phone || "";
+            document.getElementById('profilePhone').value = userProfile.phone || displayPhone.replace("+91", "");
         });
+
+        // ENABLE PUSH NOTIFICATIONS ONCE LOGGED IN
+        enablePushNotifications();
         
         startBackgroundOrderTracking();
     } else {
         loginBtn.innerText = "Login"; 
         loginBtn.onclick = openAuthModal;
         document.getElementById('userName').innerText = "Guest"; 
-        document.getElementById('userEmail').innerText = "Not logged in";
+        document.getElementById('userPhoneDisplay').innerText = "Not logged in";
         userProfile = { name: "", phone: "", addresses: [] };
         document.getElementById('activeDeliveriesBar').style.display = 'none';
     }
