@@ -20,7 +20,7 @@ header { background: #16a34a; color: white; padding: 15px; display: flex; justif
 .marquee-text { display: inline-block; animation: scrollText 25s linear infinite; }
 @keyframes scrollText { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
 
-/* TOAST NOTIFICATIONS (OPTIMIZED LIGHT THEME) */
+/* TOAST NOTIFICATIONS */
 #toastContainer { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none; }
 .toast { background: #ffffff; color: #333; padding: 16px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border-left: 4px solid #16a34a; font-weight: bold; font-size: 14px; text-align: left; animation: toastFade 4s forwards; }
 @keyframes toastFade { 0% { opacity: 0; transform: translateY(-20px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
@@ -160,9 +160,7 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
             
             <button id="sendOtpBtn" class="btn-primary" onclick="sendOTP()">Get OTP</button>
             <div style="font-size: 11px; color: #888; text-align: center; margin-top: 15px;">
-                Protected by reCAPTCHA. Google 
-                <a href="https://policies.google.com/privacy" style="color: #16a34a;">Privacy</a> and 
-                <a href="https://policies.google.com/terms" style="color: #16a34a;">Terms</a> apply.
+                Protected by reCAPTCHA. Google <a href="#" style="color: #16a34a;">Privacy</a> and <a href="#" style="color: #16a34a;">Terms</a> apply.
             </div>
         </div>
 
@@ -173,7 +171,6 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
             <button id="verifyOtpBtn" class="btn-primary" onclick="verifyOTP()">Verify & Login</button>
             <button onclick="resetAuthUI()" style="width: 100%; background: #eee; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; color: #333;">Change Mobile Number</button>
         </div>
-
     </div>
 </div>
 
@@ -216,9 +213,8 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 <div id="saveAddressPromptModal" class="modal" style="z-index: 10006;">
     <div class="box" style="height: auto; margin-top: auto; border-radius: 20px 20px 0 0;">
         <h3 style="margin-top:0; color: #16a34a;">Order Placed! 🎉</h3>
-        <p style="font-size: 14px; color: #444; line-height: 1.4;">We noticed you used a new delivery address. Would you like to save it for faster checkout next time?</p>
+        <p style="font-size: 14px; color: #444; line-height: 1.4;">Would you like to save your new delivery address for next time?</p>
         <div style="background: #f9f9f9; padding: 10px; border-radius: 8px; font-size: 12px; color: #666; margin-bottom: 15px; border: 1px solid #eee;" id="promptAddressDisplay"></div>
-        
         <input id="promptAddrLabel" placeholder="Save as (e.g. Home, Office) *">
         <button class="btn-primary" onclick="confirmSavePromptAddress()">Save Address</button>
         <button onclick="document.getElementById('saveAddressPromptModal').style.display='none'" style="width: 100%; background: #eee; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; color: #555;">No Thanks</button>
@@ -327,8 +323,12 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
                 <span id="eta" style="background: #eefce9; color: #16a34a; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 14px;">Calc ETA...</span>
             </div>
             <div id="statusText" style="color:#666; font-size: 14px; margin-bottom: 15px;">Connecting to driver GPS...</div>
+            
             <div id="noDriverText" style="text-align:center; color:#666; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Assigning a delivery partner soon...</div>
-            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">📞 Call Partner</a>
+            <a id="driverCallBtn" href="#" style="display:none; text-align:center; background:#16a34a; color:white; padding:14px; border-radius:10px; text-decoration:none; font-weight:bold; font-size: 16px;">
+                📞 Call Partner
+            </a>
+            
             <button onclick="document.getElementById('mapModal').style.display='none'" style="width:100%; padding:10px; background:#ddd; color:#333; border:none; border-radius:8px; margin-top:10px; cursor:pointer; font-weight:bold;">Close Map</button>
         </div>
     </div>
@@ -370,7 +370,7 @@ let userHiddenTracker = false;
 let selectedPaymentMethod = ""; 
 let selectedSavedAddressIndex = -1; 
 let mapContext = 'checkout'; 
-let tempUnsavedAddressData = null; // Used for smart save prompt
+let tempUnsavedAddressData = null; 
 
 // PROMO & AUDIO
 let promoVisits = parseInt(localStorage.getItem("promoVisits") || "0"); promoVisits++; localStorage.setItem("promoVisits", promoVisits);
@@ -392,21 +392,16 @@ function showToast(message) {
 // PHONE AUTHENTICATION SYSTEM
 // ==========================================
 let confirmationResult = null;
-let recaptchaVerifier = null;
 let otpAttempts = 0;
 const MAX_OTP_ATTEMPTS = 4;
-
-function initRecaptcha() {
-    if (!recaptchaVerifier) {
-        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { 'size': 'invisible' });
-    }
-}
 
 function openAuthModal() {
     closeMenu();
     resetAuthUI();
     document.getElementById('authModal').style.display = "flex";
-    initRecaptcha();
+    if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('sendOtpBtn', { 'size': 'invisible' });
+    }
 }
 
 function closeAuthModal() { document.getElementById('authModal').style.display = "none"; }
@@ -428,15 +423,15 @@ function sendOTP() {
     
     btn.disabled = true; btn.innerText = "Sending..."; otpAttempts = 0;
 
-    auth.signInWithPhoneNumber(formattedNumber, recaptchaVerifier).then((confirmation) => {
-        confirmationResult = confirmation;
+    auth.signInWithPhoneNumber(formattedNumber, window.recaptchaVerifier).then((confirmation) => {
+        window.confirmationResult = confirmation;
         showToast("📲 OTP sent successfully!");
         document.getElementById('phoneInputStep').style.display = "none";
         document.getElementById('otpVerifyStep').style.display = "block";
         btn.innerText = "Get OTP"; btn.disabled = false;
     }).catch((error) => {
         showToast("❌ Failed to send OTP. Please try again.");
-        if (recaptchaVerifier) { recaptchaVerifier.render().then(w => grecaptcha.reset(w)); }
+        if (window.recaptchaVerifier) { window.recaptchaVerifier.render().then(w => grecaptcha.reset(w)); }
         btn.innerText = "Get OTP"; btn.disabled = false;
     });
 }
@@ -448,7 +443,7 @@ function verifyOTP() {
     const btn = document.getElementById('verifyOtpBtn');
     btn.disabled = true; btn.innerText = "Verifying...";
 
-    confirmationResult.confirm(code).then((result) => {
+    window.confirmationResult.confirm(code).then((result) => {
         showToast("✅ Logged in successfully!");
         closeAuthModal();
         btn.disabled = false; btn.innerText = "Verify & Login";
@@ -461,7 +456,7 @@ function verifyOTP() {
         } else {
             showToast(`❌ Maximum attempts reached. Please request a new OTP.`);
             resetAuthUI();
-            if (recaptchaVerifier) { recaptchaVerifier.render().then(w => grecaptcha.reset(w)); }
+            if (window.recaptchaVerifier) { window.recaptchaVerifier.render().then(w => grecaptcha.reset(w)); }
             btn.disabled = false; btn.innerText = "Verify & Login";
         }
     });
@@ -542,7 +537,7 @@ function saveNewAddress() {
     showToast("Address saved!"); openAddresses();
 }
 
-// SMART ADDRESS SAVER (Triggers after checkout if needed)
+// SMART ADDRESS SAVER
 function confirmSavePromptAddress() {
     let label = document.getElementById('promptAddrLabel').value.trim() || "Address";
     if(!tempUnsavedAddressData) return;
@@ -713,7 +708,7 @@ async function placeOrder() {
     if(!orderName || !orderPhone) { alert("Please enter your Contact Details (Name & Phone)."); return; }
     
     let finalAddressText = ""; let finalLat = null; let finalLng = null;
-    let usedNewAddress = false; // Flag to trigger prompt
+    let usedNewAddress = false; 
     
     if (selectedSavedAddressIndex !== -1) {
         let addr = userProfile.addresses[selectedSavedAddressIndex];
@@ -735,7 +730,6 @@ async function placeOrder() {
     let screenshotUrl = null; const fileInput = document.getElementById('paymentScreenshot');
     if (selectedPaymentMethod === "ONLINE") { if (fileInput.files.length === 0) { alert("Please upload the payment screenshot before confirming."); return; } }
     
-    // Save temp data for prompt
     if (usedNewAddress) {
         tempUnsavedAddressData = {
             flat: document.getElementById('flatNumber').value.trim() || "",
@@ -787,10 +781,8 @@ async function placeOrder() {
         document.getElementById('checkoutStepAddress').style.display = "block";
         document.getElementById('manualAddress').value = ""; document.getElementById('flatNumber').value = ""; document.getElementById('landmark').value = ""; fileInput.value = ""; document.getElementById('specificAddressContainer').style.display = "none"; document.getElementById('upiPaymentSection').style.display = "none"; document.getElementById('gpsText').innerText = "Set exact map location"; document.getElementById('gpsIcon').innerText = "📍"; 
         
-        // Render UI cleanup
         render();
 
-        // CHECK IF PROMPT IS NEEDED
         if (usedNewAddress && tempUnsavedAddressData && tempUnsavedAddressData.text) {
             document.getElementById('promptAddressDisplay').innerText = tempUnsavedAddressData.text;
             document.getElementById('saveAddressPromptModal').style.display = 'flex';
@@ -863,27 +855,73 @@ function trackOrder(orderId, destinationLat, destinationLng) {
     initializeMapTracking(orderId, dropOffLocation);
 }
 
+// SMART DUAL TRACKING: Pulls from driver profile if order location is asleep
 function initializeMapTracking(orderId, dropOffLocation) {
     if(typeof google === 'undefined') { showToast("⚠️ Map tracking unavailable."); return; }
-    map = new google.maps.Map(document.getElementById("map"), { center: dropOffLocation, zoom: 14, disableDefaultUI: true }); directionsService = new google.maps.DirectionsService(); directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: true, polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } }); userMarker = new google.maps.Marker({ position: dropOffLocation, map: map, icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" } }); deliveryMarker = new google.maps.Marker({ map: map, icon: { url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", scaledSize: new google.maps.Size(35, 35) } });
+    
+    map = new google.maps.Map(document.getElementById("map"), { center: dropOffLocation, zoom: 14, disableDefaultUI: true }); 
+    directionsService = new google.maps.DirectionsService(); 
+    directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: true, polylineOptions: { strokeColor: "#16a34a", strokeWeight: 5 } }); 
+    userMarker = new google.maps.Marker({ position: dropOffLocation, map: map, icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" } }); 
+    deliveryMarker = new google.maps.Marker({ map: map, icon: { url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", scaledSize: new google.maps.Size(35, 35) } });
+    
     if(unsubscribeTracking) unsubscribeTracking();
     
     unsubscribeTracking = db.collection("orders").doc(orderId).onSnapshot(doc => {
         let data = doc.data(); if(!data) return;
-        let driverCallBtn = document.getElementById('driverCallBtn'); let noDriverText = document.getElementById('noDriverText');
-        if (data.driverPhone) { driverCallBtn.href = `tel:${data.driverPhone}`; driverCallBtn.innerHTML = `📞 Call Partner (${data.driverName || 'Driver'})`; driverCallBtn.style.display = "block"; noDriverText.style.display = "none"; } else { driverCallBtn.style.display = "none"; noDriverText.style.display = "block"; }
-        if(!data.location) return; 
-        let driverPos = { lat: data.location.lat, lng: data.location.lng }; deliveryMarker.setPosition(driverPos);
-        if(!routeDrawn) {
-            document.getElementById('statusText').innerText = "Calculating route..."; directionsService.route({ origin: driverPos, destination: dropOffLocation, travelMode: google.maps.TravelMode.DRIVING }, (response, status) => {
-                if (status === 'OK') { directionsRenderer.setDirections(response); let leg = response.routes[0].legs[0]; document.getElementById('eta').innerText = leg.duration.text; document.getElementById('statusText').innerText = `Driver is ${leg.distance.text} away`; routeDrawn = true; } else { document.getElementById('statusText').innerText = "Driver is on the move!"; }
+        
+        let driverCallBtn = document.getElementById('driverCallBtn'); 
+        let noDriverText = document.getElementById('noDriverText');
+        
+        if (data.driverPhone) { 
+            driverCallBtn.href = `tel:${data.driverPhone}`; 
+            driverCallBtn.innerHTML = `📞 Call Partner (${data.driverName || 'Driver'})`; 
+            driverCallBtn.style.display = "block"; 
+            noDriverText.style.display = "none"; 
+        } else { 
+            driverCallBtn.style.display = "none"; 
+            noDriverText.style.display = "block"; 
+        }
+
+        // Real-time Driver GPS Fetcher
+        if (data.driverId) {
+            db.collection("drivers").doc(data.driverId).onSnapshot(driverDoc => {
+                let driverData = driverDoc ? driverDoc.data() : null;
+                
+                // Prioritize the specific order location, otherwise fallback to the driver's global live location
+                let loc = data.location || (driverData && driverData.location ? driverData.location : null);
+                
+                if(!loc) {
+                    document.getElementById('statusText').innerText = "Partner is starting trip... Waiting for GPS lock.";
+                    return;
+                }
+                
+                let driverPos = { lat: loc.lat, lng: loc.lng }; 
+                deliveryMarker.setPosition(driverPos);
+                
+                if(!routeDrawn) { 
+                    document.getElementById('statusText').innerText = "Calculating route..."; 
+                    directionsService.route({ origin: driverPos, destination: dropOffLocation, travelMode: google.maps.TravelMode.DRIVING }, (response, status) => { 
+                        if (status === 'OK') { 
+                            directionsRenderer.setDirections(response); 
+                            let leg = response.routes[0].legs[0]; 
+                            document.getElementById('eta').innerText = leg.duration.text; 
+                            document.getElementById('statusText').innerText = `Partner is ${leg.distance.text} away`; 
+                            routeDrawn = true; 
+                        } else { 
+                            document.getElementById('statusText').innerText = "Partner is on the move!"; 
+                        } 
+                    }); 
+                }
             });
+        } else {
+            document.getElementById('statusText').innerText = "Assigning a delivery partner soon...";
         }
     });
 }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOZcMYz-PKQ8nQUqCi1NjIe10uHjmZiGA&libraries=geometry,places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBSfrLwVh9m8RIcTJDURvEnX1VOeeiSJ_A&libraries=geometry,places"></script>
 
 </body>
 </html>
