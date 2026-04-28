@@ -85,6 +85,9 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
 @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 #promoImage { width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: block; }
 #closePromoBtn { position: absolute; top: -15px; right: -15px; background: white; color: black; width: 32px; height: 32px; border-radius: 50%; text-align: center; line-height: 30px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 10; border: 1px solid #ccc; }
+
+/* Hide Google reCAPTCHA Badge */
+.grecaptcha-badge { visibility: hidden !important; }
 </style>
 </head>
 
@@ -159,6 +162,11 @@ input, textarea { box-sizing: border-box; width:100%; padding:14px; margin-botto
             <div id="recaptcha-container"></div>
             
             <button id="sendOtpBtn" class="btn-primary" onclick="sendOTP()">Get OTP</button>
+            <div style="font-size: 11px; color: #888; text-align: center; margin-top: 15px;">
+                Protected by reCAPTCHA. Google 
+                <a href="https://policies.google.com/privacy" style="color: #16a34a;">Privacy</a> and 
+                <a href="https://policies.google.com/terms" style="color: #16a34a;">Terms</a> apply.
+            </div>
         </div>
 
         <div id="otpVerifyStep" style="display: none;">
@@ -341,7 +349,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const storage = firebase.storage();
-const messaging = firebase.messaging(); // Initialize Push Notifications
+const messaging = firebase.messaging(); 
 
 auth.useDeviceLanguage();
 
@@ -388,26 +396,21 @@ function showToast(message) {
     toast.className = "toast"; 
     toast.innerText = message;
     container.appendChild(toast); 
-    notificationAudio.play().catch(e => console.log("Audio play blocked by browser"));
+    notificationAudio.play().catch(e => console.log("Audio play blocked"));
     setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 5000);
 }
 
 // ==========================================
-// NEW: PUSH NOTIFICATION SYSTEM
+// PUSH NOTIFICATION SYSTEM
 // ==========================================
 function enablePushNotifications() {
     messaging.requestPermission()
     .then(() => {
-        console.log("Notification permission granted.");
         return messaging.getToken();
     })
     .then((token) => {
-        console.log("Device FCM Token:", token);
-        // Save this unique device token to the user's profile in the database
         if (user) {
-            db.collection("users").doc(user.uid).set({ 
-                fcmToken: token 
-            }, { merge: true });
+            db.collection("users").doc(user.uid).set({ fcmToken: token }, { merge: true });
         }
     })
     .catch((err) => {
@@ -415,9 +418,7 @@ function enablePushNotifications() {
     });
 }
 
-// Listen for messages when the app is OPEN on screen
 messaging.onMessage((payload) => {
-    console.log("Message received. ", payload);
     showToast(`🔔 ${payload.notification.title}: ${payload.notification.body}`);
 });
 
@@ -426,6 +427,8 @@ messaging.onMessage((payload) => {
 // ==========================================
 let confirmationResult = null;
 let recaptchaVerifier = null;
+let otpAttempts = 0;
+const MAX_OTP_ATTEMPTS = 4;
 
 function initRecaptcha() {
     if (!recaptchaVerifier) {
@@ -451,6 +454,7 @@ function resetAuthUI() {
     document.getElementById('otpCode').value = "";
     document.getElementById('phoneInputStep').style.display = "block";
     document.getElementById('otpVerifyStep').style.display = "none";
+    otpAttempts = 0; // Reset the failed attempt counter
 }
 
 function sendOTP() {
@@ -465,6 +469,7 @@ function sendOTP() {
     
     btn.disabled = true;
     btn.innerText = "Sending OTP...";
+    otpAttempts = 0; // Reset attempts whenever a new OTP is requested
 
     auth.signInWithPhoneNumber(formattedNumber, recaptchaVerifier)
         .then((confirmation) => {
@@ -478,8 +483,17 @@ function sendOTP() {
             btn.disabled = false;
         })
         .catch((error) => {
-            console.error("Error during signInWithPhoneNumber", error);
-            showToast("❌ Failed to send OTP. " + error.message);
+            console.error("OTP Error", error);
+            
+            // Clean, user-friendly error messages
+            let friendlyError = "Failed to send OTP. Please try again.";
+            if (error.code === 'auth/invalid-phone-number') {
+                friendlyError = "Invalid mobile number format.";
+            } else if (error.code === 'auth/too-many-requests') {
+                friendlyError = "Too many requests. Please try again later.";
+            }
+            
+            showToast("❌ " + friendlyError);
             
             if (recaptchaVerifier) {
                 recaptchaVerifier.render().then(function(widgetId) {
@@ -504,16 +518,40 @@ function verifyOTP() {
 
     confirmationResult.confirm(code)
         .then((result) => {
+            otpAttempts = 0; // Reset on success
             showToast("✅ Logged in successfully!");
             closeAuthModal();
             btn.disabled = false;
             btn.innerText = "Verify & Login";
         })
         .catch((error) => {
-            console.error("Error while checking OTP", error);
-            showToast("❌ Invalid OTP. Please try again.");
-            btn.disabled = false;
-            btn.innerText = "Verify & Login";
+            console.error("OTP Verification Error", error);
+            otpAttempts++;
+            let remaining = MAX_OTP_ATTEMPTS - otpAttempts;
+            
+            // Map Firebase errors to human text
+            let friendlyError = "Invalid OTP.";
+            if (error.code === 'auth/invalid-verification-code') {
+                friendlyError = "Incorrect OTP.";
+            } else if (error.code === 'auth/code-expired') {
+                friendlyError = "OTP has expired.";
+            }
+
+            if (remaining > 0) {
+                showToast(`❌ ${friendlyError} ${remaining} attempt(s) left.`);
+                btn.disabled = false;
+                btn.innerText = "Verify & Login";
+            } else {
+                showToast(`❌ ${friendlyError} Maximum attempts reached. Please request a new OTP.`);
+                resetAuthUI(); // Send them back to the phone number screen
+                
+                // Reset recaptcha so they can request again
+                if (recaptchaVerifier) {
+                    recaptchaVerifier.render().then(function(widgetId) {
+                        grecaptcha.reset(widgetId);
+                    });
+                }
+            }
         });
 }
 
@@ -541,22 +579,16 @@ auth.onAuthStateChanged(u => {
             if(doc.exists) { 
                 userProfile = doc.data(); 
                 if(!userProfile.addresses) { userProfile.addresses = []; }
-                
-                if(userProfile.name) {
-                    document.getElementById('userName').innerText = userProfile.name;
-                }
+                if(userProfile.name) { document.getElementById('userName').innerText = userProfile.name; }
             } else { 
                 userProfile = { name: "", phone: displayPhone.replace("+91", ""), addresses: [] }; 
                 db.collection("users").doc(u.uid).set(userProfile, { merge: true });
             }
-            
             document.getElementById('profileName').value = userProfile.name || "";
             document.getElementById('profilePhone').value = userProfile.phone || displayPhone.replace("+91", "");
         });
 
-        // ENABLE PUSH NOTIFICATIONS ONCE LOGGED IN
         enablePushNotifications();
-        
         startBackgroundOrderTracking();
     } else {
         loginBtn.innerText = "Login"; 
